@@ -1,0 +1,609 @@
+{% load static %}
+{% load custom_filters %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMCB - Импорт из файла</title>
+
+    <!-- Подключаем шрифт -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <link rel="icon" href="{% static 'images/logo1_1.png' %}" type="image/x-icon">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+    
+    <style>
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .chart-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .chart-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .chart-buttons .submit-button {
+            width: auto;
+            padding: 5px 10px;
+            margin-bottom: 0;
+            font-size: 14px;
+        }
+        
+        .file-input-wrapper {
+            margin-bottom: 15px;
+        }
+        
+        .form {
+            flex: 1;
+        }
+        
+        .graphs-block {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        #force-chart, #motion-chart {
+            width: 100%;
+            height: 400px;
+            border-radius: 8px;
+            background-color: #ffffff;
+            box-shadow: 0 3px 5px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <!-- Шапка -->
+    <div class="header">
+        <button id="menu-toggle" class="menu-btn">☰</button>
+
+        <div class="logo-container">
+            <img src="{% static 'images/logo1.png' %}" alt="Логотип 1" class="logo1">
+            <h1>AMCB EddyCurrent Simulation</h1>
+            <img src="{% static 'images/logo2.png' %}" alt="Логотип 2" class="logo2">
+        </div>
+    </div>
+
+    <!-- Боковая панель -->
+    <div class="sidebar">
+        <ul class="menu">
+            <li class="menu-item"><a href="{% url 'brake:brake_view' %}">1 — Непрерывное интегрирование</a></li>
+            <li class="menu-item"><a href="{% url 'brake:brake_form2' %}">2 — Пошаговое интегрирование</a></li>
+            <li class="menu-item"><a href="{% url 'brake:brake_form3' %}">3 — Импорт из файла</a></li>
+        </ul>
+    </div>
+
+    <!-- Основной контент -->
+    <div class="main-content">
+        <div class="container">
+            <div class="form-charts-container">
+                <!-- Левая часть - форма -->
+                <div class="form">
+                    <div class="form-row">
+                        <!-- Колонка 1: Загрузка CSV -->
+                        <div class="form-column">
+                            <h3>Загрузка данных</h3>
+                            
+                            <div class="file-input-wrapper">
+                                <label>Загрузить CSV с точками F(V):</label>
+                                <input type="file" id="csvFile" accept=".csv,text/csv" style="width: 100%; padding: 8px; background: #f4f4f4; border: 1px dashed #007bff; border-radius: 5px;">
+                            </div>
+                            
+                            <!-- Блок с результатами -->
+                            <div class="current-data">
+                                <h4>Результаты расчета</h4>
+                                
+                                <div class="data-field">
+                                    <label>Время остановки (с)</label>
+                                    <div id="final-time">0</div>
+                                </div>
+                                
+                                <div class="data-field">
+                                    <label>Путь торможения (м)</label>
+                                    <div id="final-distance">0</div>
+                                </div>
+                                
+                                <div class="data-field">
+                                    <label>Конечная скорость (м/с)</label>
+                                    <div id="final-speed">0</div>
+                                </div>
+                                
+                                <div class="data-field">
+                                    <label>Макс. перегрузка (g)</label>
+                                    <div id="max-overload">0</div>
+                                </div>
+                                
+                                <div class="data-field">
+                                    <label>Начальная скорость (м/с)</label>
+                                    <div id="initial-speed-display">30</div>
+                                </div>
+                                
+                                <div class="data-field">
+                                    <label>Масса (кг)</label>
+                                    <div id="mass-display">10000</div>
+                                </div>
+                            </div>
+                            
+                            <div id="pointsStatus" style="margin-top: 8px; font-size: 12px; color: #ff4b2b;"></div>
+                        </div>
+
+                        <!-- Колонка 2: Параметры расчёта -->
+                        <div class="form-column">
+                            <h3>Параметры расчёта</h3>
+
+                            <div style="margin-bottom: 15px;">
+                                <label>Масса m (кг):</label>
+                                <input type="number" id="mass" value="10000" min="0.001" step="0.1" onchange="updateMassDisplay(this.value)">
+                            </div>
+
+                            <div style="margin-bottom: 15px;">
+                                <label>Нач. скорость v0 (м/с):</label>
+                                <input type="number" id="v0" value="30" min="0" step="0.1" onchange="updateSpeedDisplay(this.value)">
+                            </div>
+
+                            <div style="margin-bottom: 15px;">
+                                <label>Шаг dt (с):</label>
+                                <input type="number" id="dt" value="0.02" min="0.0001" step="0.001">
+                            </div>
+
+                            <div style="margin-bottom: 15px;">
+                                <label>Время tMax (с):</label>
+                                <input type="number" id="tMax" value="30" min="0.01" step="0.5">
+                            </div>
+
+                            <div style="display: flex; gap: 8px; margin: 20px 0;">
+                                <button type="button" class="submit-button" id="runBtn" style="width: auto;">Запустить RK4</button>
+                                <button type="button" class="clear-button" id="clearBtn" style="width: auto;">Очистить</button>
+                            </div>
+
+                            <div id="runStatus" style="margin-top: 8px; font-size: 12px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Правая часть - графики -->
+                <div class="graphs-block">
+                    <!-- График F(V) -->
+                    <div>
+                        <div class="chart-header">
+                            <h3>График F(V)</h3>
+                            <div class="chart-buttons">
+                                <button class="submit-button" id="dlFvPng">PNG</button>
+                                <button class="submit-button" id="dlFvCsv">CSV</button>
+                            </div>
+                        </div>
+                        <div id="force-chart"></div>
+                    </div>
+                    
+                    <!-- График движения -->
+                    <div>
+                        <div class="chart-header">
+                            <h3>Тормозная характеристика</h3>
+                            <div class="chart-buttons">
+                                <button class="submit-button" id="dlMotionPng">PNG</button>
+                                <button class="submit-button" id="dlMotionCsv">CSV</button>
+                            </div>
+                        </div>
+                        <div id="motion-chart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+(() => {
+    const $ = (id) => document.getElementById(id);
+
+    // ---------- Управление боковым меню ----------
+    const menuBtn = document.getElementById('menu-toggle');
+    const sidebar = document.querySelector('.sidebar');
+    const body = document.body;
+
+    menuBtn.addEventListener('click', () => {
+        sidebar.classList.toggle('active');
+        body.classList.toggle('sidebar-open');
+    });
+
+    // ---------- Функции обновления дисплеев ----------
+    window.updateMassDisplay = function(value) {
+        document.getElementById('mass-display').innerText = value;
+    };
+    
+    window.updateSpeedDisplay = function(value) {
+        document.getElementById('initial-speed-display').innerText = value;
+    };
+
+    // ---------- Функция для получения CSRF токена ----------
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // ---------- Парсинг CSV прямо в браузере ----------
+    function parseCsvInBrowser(text) {
+        const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+        if (lines.length === 0) return [];
+
+        const first = lines[0];
+        let sep = ",";
+        if (first.includes(";")) sep = ";";
+        else if (first.includes("\t")) sep = "\t";
+
+        function toNumber(s) {
+            if (s == null || s === '') return NaN;
+            let t = String(s).trim();
+            t = t.replace(/^"(.*)"$/, "$1");
+            t = t.replace(/\s+/g, "");
+            if (t.includes(",") && !t.includes(".")) {
+                t = t.replace(",", ".");
+            }
+            return Number(t);
+        }
+
+        let start = 0;
+        const firstParts = lines[0].split(sep);
+        if (firstParts.length >= 2) {
+            const v = toNumber(firstParts[0]);
+            const f = toNumber(firstParts[1]);
+            if (isNaN(v) || isNaN(f)) {
+                start = 1;
+            }
+        }
+
+        const pts = [];
+        for (let i = start; i < lines.length; i++) {
+            const parts = lines[i].split(sep);
+            if (parts.length < 2) continue;
+            
+            const v = toNumber(parts[0]);
+            const f = toNumber(parts[1]);
+            
+            if (!isNaN(v) && !isNaN(f) && v >= 0) {
+                pts.push({ v, f });
+            }
+        }
+        
+        return pts;
+    }
+
+    // ---------- Состояние ----------
+    let lastRes = null;
+    let currentPoints = [
+        {v: 0, f: 12000},
+        {v: 10, f: 11500},
+        {v: 20, f: 10500},
+        {v: 30, f: 9000}
+    ];
+
+    // ---------- Функция для создания layout ----------
+    function getDefaultLayout(title, xTitle, yTitle) {
+        return {
+            title: { text: title, font: { size: 20 } },
+            xaxis: { title: { text: xTitle, font: { size: 16 } }, tickfont: { size: 12 } },
+            yaxis: { title: { text: yTitle, font: { size: 16 } }, tickfont: { size: 12 } },
+            legend: { font: { size: 14 } },
+            hovermode: 'x unified',
+            hoverlabel: { bgcolor: "white", font: { size: 14, color: "black" } },
+            margin: { t: 50, l: 70, r: 50, b: 50 }
+        };
+    }
+
+    // ---------- Отрисовка графика F(V) ----------
+    function plotForceChart(points) {
+        console.log("Plotting force chart with", points.length, "points");
+        
+        if (!points || points.length < 2) {
+            Plotly.react('force-chart', [], {});
+            return;
+        }
+        
+        // Сортируем точки
+        const sortedPoints = [...points].sort((a, b) => a.v - b.v);
+        
+        // Функция интерполяции
+        function interpolate(v) {
+            if (v <= sortedPoints[0].v) return sortedPoints[0].f;
+            if (v >= sortedPoints[sortedPoints.length - 1].v) return sortedPoints[sortedPoints.length - 1].f;
+            
+            for (let i = 0; i < sortedPoints.length - 1; i++) {
+                if (v >= sortedPoints[i].v && v <= sortedPoints[i + 1].v) {
+                    const dv = sortedPoints[i + 1].v - sortedPoints[i].v;
+                    const df = sortedPoints[i + 1].f - sortedPoints[i].f;
+                    return sortedPoints[i].f + (v - sortedPoints[i].v) * df / dv;
+                }
+            }
+            return sortedPoints[0].f;
+        }
+        
+        // Генерируем точки для гладкой кривой
+        const xs = [];
+        const ys = [];
+        const vmin = sortedPoints[0].v;
+        const vmax = sortedPoints[sortedPoints.length - 1].v;
+        const vstart = Math.max(0, vmin * 0.9);
+        const vend = vmax * 1.1;
+        
+        for (let i = 0; i <= 200; i++) {
+            const v = vstart + (vend - vstart) * i / 200;
+            xs.push(v);
+            ys.push(interpolate(v));
+        }
+
+        const traceLine = {
+            x: xs,
+            y: ys,
+            type: 'scatter',
+            mode: 'lines',
+            name: 'Аппроксимация',
+            line: { color: '#1f77b4', width: 3 }
+        };
+
+        const tracePoints = {
+            x: sortedPoints.map(p => p.v),
+            y: sortedPoints.map(p => p.f),
+            type: 'scatter',
+            mode: 'markers',
+            name: 'Точки',
+            marker: { color: '#ff7f0e', size: 8 }
+        };
+
+        const layoutForce = getDefaultLayout('Сила торможения (кгс)', 'Скорость V (м/с)', 'Сила F (кгс)');
+        
+        Plotly.react('force-chart', [traceLine, tracePoints], layoutForce);
+    }
+
+    // ---------- Отрисовка графика движения ----------
+    function plotMotionChart(data) {
+        if (!data || !data.t || !data.v || !data.x) return;
+        
+        const lastIndex = data.t.length - 1;
+        const finalDistance = data.x[lastIndex].toFixed(2);
+        const finalSpeed = data.v[lastIndex].toFixed(2);
+        const stopTime = data.stop_time ? data.stop_time.toFixed(2) : data.t[lastIndex].toFixed(2);
+        
+        let overload = data.overload;
+        if (!overload) {
+            overload = [0];
+            const g = 9.8;
+            for (let i = 1; i < data.v.length; i++) {
+                const dt = data.t[i] - data.t[i-1];
+                const dv = Math.abs(data.v[i] - data.v[i-1]);
+                overload.push(dv / (dt * g));
+            }
+        }
+        const maxOverload = Math.max(...overload).toFixed(2);
+        const finalOverload = overload[lastIndex].toFixed(2);
+        
+        document.getElementById('final-time').innerText = stopTime;
+        document.getElementById('final-distance').innerText = finalDistance;
+        document.getElementById('final-speed').innerText = finalSpeed;
+        document.getElementById('max-overload').innerText = maxOverload;
+        
+        const traceMotion = {
+            x: data.t,
+            y: data.x,
+            type: 'scatter',
+            mode: 'lines',
+            name: `Путь: ${finalDistance} м`,
+            line: { color: '#1f77b4', width: 3 },
+            hovertemplate: 'Путь: %{y:.2f} м<extra></extra>'
+        };
+        
+        const traceSpeed = {
+            x: data.t,
+            y: data.v,
+            type: 'scatter',
+            mode: 'lines',
+            name: `Скорость: ${finalSpeed} м/с`,
+            line: { color: '#2ca02c', width: 3 },
+            hovertemplate: 'Скорость: %{y:.2f} м/с<extra></extra>'
+        };
+        
+        const traceOverload = {
+            x: data.t,
+            y: overload,
+            type: 'scatter',
+            mode: 'lines',
+            name: `Перегрузка: ${finalOverload} g`,
+            line: { color: '#d62728', width: 3 },
+            hovertemplate: 'Перегрузка: %{y:.2f} g<extra></extra>'
+        };
+        
+        const layoutMotion = getDefaultLayout(
+            `Тормозная характеристика (S=${finalDistance} м, V=${finalSpeed} м/с, g=${finalOverload})`,
+            'Время t (с)', 
+            'Путь S (м) / Скорость V (м/с) / Перегрузка g'
+        );
+        
+        Plotly.react('motion-chart', [traceMotion, traceSpeed, traceOverload], layoutMotion);
+    }
+
+    // ---------- Загрузка CSV (прямой парсинг в браузере) ----------
+    $("csvFile").addEventListener("change", async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const text = await file.text();
+        console.log("CSV content:", text.substring(0, 200));
+        
+        // Парсим CSV прямо в браузере
+        const pts = parseCsvInBrowser(text);
+        console.log("Parsed points:", pts);
+        
+        if (pts.length >= 2) {
+            currentPoints = pts;
+            $("pointsStatus").textContent = ` Загружено ${pts.length} точек`;
+            // Перерисовываем график
+            plotForceChart(currentPoints);
+            // Очищаем результаты
+            lastRes = null;
+            Plotly.react('motion-chart', [], {});
+            document.getElementById('final-time').innerText = '—';
+            document.getElementById('final-distance').innerText = '—';
+            document.getElementById('final-speed').innerText = '—';
+            document.getElementById('max-overload').innerText = '—';
+        } else {
+            $("pointsStatus").textContent = " Не удалось распознать точки. Нужно минимум 2 точки";
+        }
+    });
+
+    // ---------- Функция вызова API ----------
+    async function runCalculation() {
+        if (currentPoints.length < 2) {
+            $("runStatus").innerHTML = '<span style="color: #ff4b2b;">Нужно минимум 2 точки</span>';
+            return;
+        }
+
+        const m = Number($("mass").value);
+        const v0 = Number($("v0").value);
+        const dt = Number($("dt").value);
+        const tMax = Number($("tMax").value);
+
+        if (m <= 0 || dt <= 0 || tMax <= 0 || v0 < 0) {
+            $("runStatus").innerHTML = '<span style="color: #ff4b2b;">Проверьте параметры</span>';
+            return;
+        }
+
+        $("runStatus").innerHTML = '<span style="color: #666;">Расчет...</span>';
+
+        try {
+            const response = await fetch('/brake/api/calculate/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    points: currentPoints,
+                    mass: m,
+                    v0: v0,
+                    dt: dt,
+                    tMax: tMax,
+                    forceUnit: 'kgf'
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                lastRes = result.data;
+                plotForceChart(currentPoints);
+                plotMotionChart(lastRes);
+                $("runStatus").innerHTML = '<span style="color: #28a745;">✓ Готово</span>';
+            } else {
+                $("runStatus").innerHTML = `<span style="color: #ff4b2b;">Ошибка: ${result.error}</span>`;
+            }
+        } catch (error) {
+            console.error("Calculation error:", error);
+            $("runStatus").innerHTML = `<span style="color: #ff4b2b;">Ошибка: ${error.message}</span>`;
+        }
+    }
+
+    function clearResults() {
+        lastRes = null;
+        currentPoints = [
+            {v: 0, f: 12000},
+            {v: 10, f: 11500},
+            {v: 20, f: 10500},
+            {v: 30, f: 9000}
+        ];
+        
+        plotForceChart(currentPoints);
+        Plotly.react('motion-chart', [], {});
+        
+        $("runStatus").innerHTML = "";
+        document.getElementById('final-time').innerText = '0';
+        document.getElementById('final-distance').innerText = '0';
+        document.getElementById('final-speed').innerText = '0';
+        document.getElementById('max-overload').innerText = '0';
+        $("pointsStatus").textContent = "";
+        document.getElementById('csvFile').value = '';
+    }
+
+    // ---------- Функции скачивания ----------
+    function downloadPlotlyPng(chartId, filename) {
+        Plotly.downloadImage(chartId, {
+            format: 'png',
+            width: 1200,
+            height: 600,
+            filename: filename
+        });
+    }
+
+    // ---------- Инициализация ----------
+    document.addEventListener('DOMContentLoaded', () => {
+        plotForceChart(currentPoints);
+
+        $("runBtn").addEventListener("click", runCalculation);
+        $("clearBtn").addEventListener("click", clearResults);
+
+        $("dlFvPng").addEventListener("click", () => downloadPlotlyPng('force-chart', 'F_of_V'));
+        $("dlMotionPng").addEventListener("click", () => downloadPlotlyPng('motion-chart', 'motion_characteristics'));
+
+        $("dlFvCsv").addEventListener("click", () => {
+            const csv = "V (м/с),F (кгс)\n" + currentPoints.map(p => `${p.v},${p.f}`).join("\n");
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "F_of_V.csv";
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        $("dlMotionCsv").addEventListener("click", () => {
+            if (!lastRes) { 
+                alert("Сначала выполните расчёт"); 
+                return; 
+            }
+            
+            let overload = lastRes.overload;
+            if (!overload) {
+                overload = [0];
+                const g = 9.8;
+                for (let i = 1; i < lastRes.v.length; i++) {
+                    const dt = lastRes.t[i] - lastRes.t[i-1];
+                    const dv = Math.abs(lastRes.v[i] - lastRes.v[i-1]);
+                    overload.push(dv / (dt * g));
+                }
+            }
+            
+            const csv = "t (с),V (м/с),X (м),Перегрузка (g)\n" + 
+                lastRes.t.map((t, i) => `${t},${lastRes.v[i]},${lastRes.x[i]},${overload[i]}`).join("\n");
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "motion_data.csv";
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+    });
+})();
+</script>
+</body>
+</html>

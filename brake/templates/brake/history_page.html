@@ -1,0 +1,141 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMCB - История расчётов</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="icon" href="{% static 'images/logo1_1.png' %}" type="image/x-icon">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+
+    <style>
+        .history-block {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
+            padding: 16px;
+        }
+
+        .records-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .records-table th,
+        .records-table td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #e8e8e8;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .records-table th {
+            background: #f7f9fc;
+            font-weight: 600;
+        }
+
+        .records-table tr:hover {
+            background: #fafcff;
+        }
+
+        .scroll-cell {
+            max-width: 460px;
+            max-height: 140px;
+            overflow: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+            background: #fafafa;
+            padding: 8px;
+            border-radius: 6px;
+        }
+
+        .graph-link {
+            display: inline-block;
+            text-decoration: none;
+            color: white;
+            background: linear-gradient(45deg, #007bff, #00c6ff);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+            transition: transform 0.2s;
+        }
+
+        .graph-link:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <button id="menu-toggle" class="menu-btn">☰</button>
+        <div class="logo-container">
+            <img src="{% static 'images/logo1.png' %}" alt="Логотип 1" class="logo1">
+            <h1>AMCB EddyCurrent Simulation</h1>
+            <img src="{% static 'images/logo2.png' %}" alt="Логотип 2" class="logo2">
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <ul class="menu">
+            <li class="menu-item"><a href="{% url 'brake:brake_view' %}">1 — Непрерывное интегрирование</a></li>
+            <li class="menu-item"><a href="{% url 'brake:brake_form2' %}">2 — Пошаговое интегрирование</a></li>
+            <li class="menu-item"><a href="{% url 'brake:brake_form3' %}">3 — Импорт из файла</a></li>
+            <li class="menu-item"><a href="{% url 'brake:history_page' %}">4 — История расчётов</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <div class="container">
+            <div class="history-block">
+                <h3>История расчётов</h3>
+
+                <table class="records-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Дата</th>
+                            <th>График</th>
+                            <th>Исходные данные</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in records %}
+                        <tr>
+                            <td>{{ item.id }}</td>
+                            <td>{{ item.created_at|date:"d.m.Y H:i:s" }}</td>
+                            <td>
+                                <a class="graph-link" href="{% url 'brake:history_detail' item.id %}">
+                                    Открыть график
+                                </a>
+                            </td>
+                            <td>
+                                <div class="scroll-cell">{{ item.source_data }}</div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4">История пока пустая.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const menuBtn = document.getElementById('menu-toggle');
+        const sidebar = document.querySelector('.sidebar');
+        const body = document.body;
+
+        menuBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+            body.classList.toggle('sidebar-open');
+        });
+    </script>
+</body>
+</html>

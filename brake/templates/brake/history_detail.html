@@ -1,0 +1,155 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMCB - Просмотр расчёта #{{ record.id }}</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="icon" href="{% static 'images/logo1_1.png' %}" type="image/x-icon">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+
+    <style>
+        .detail-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .detail-card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
+            padding: 16px;
+        }
+
+        .json-block {
+            white-space: pre-wrap;
+            word-break: break-word;
+            background: #fafafa;
+            padding: 12px;
+            border-radius: 8px;
+            overflow: auto;
+        }
+
+        #force-chart, #motion-chart {
+            width: 100%;
+            height: 420px;
+            border-radius: 8px;
+            background-color: #ffffff;
+            box-shadow: 0 3px 5px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <button id="menu-toggle" class="menu-btn">☰</button>
+        <div class="logo-container">
+            <img src="{% static 'images/logo1.png' %}" alt="Логотип 1" class="logo1">
+            <h1>AMCB EddyCurrent Simulation</h1>
+            <img src="{% static 'images/logo2.png' %}" alt="Логотип 2" class="logo2">
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <ul class="menu">
+            <li class="menu-item"><a href="{% url 'brake:brake_view' %}">1 — Непрерывное интегрирование</a></li>
+            <li class="menu-item"><a href="{% url 'brake:brake_form2' %}">2 — Пошаговое интегрирование</a></li>
+            <li class="menu-item"><a href="{% url 'brake:brake_form3' %}">3 — Импорт из файла</a></li>
+            <li class="menu-item"><a href="{% url 'brake:history_page' %}">4 — История расчётов</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <div class="container">
+            <div class="detail-grid">
+                <div class="detail-card">
+                    <h3>Расчёт #{{ record.id }}</h3>
+                    <p><strong>Дата:</strong> {{ record.created_at|date:"d.m.Y H:i:s" }}</p>
+                    <p><strong>Тип:</strong> {{ record.get_source_page_display }}</p>
+                </div>
+
+                <div class="detail-card">
+                    <h3>Исходные данные</h3>
+                    <div class="json-block">{{ record.source_data }}</div>
+                </div>
+
+                <div class="detail-card">
+                    <h3>График силы торможения</h3>
+                    <div id="force-chart"></div>
+                </div>
+
+                <div class="detail-card">
+                    <h3>Тормозная характеристика</h3>
+                    <div id="motion-chart"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function safeParse(str) {
+            if (!str || str === 'null' || str === 'undefined') return null;
+            try { return JSON.parse(str); } catch (e) { return null; }
+        }
+
+        const forceData = safeParse('{{ force_data|escapejs }}');
+        const motionData = safeParse('{{ motion_data|escapejs }}');
+
+        if (forceData && forceData.labels && forceData.data) {
+            Plotly.newPlot('force-chart', [{
+                x: forceData.labels,
+                y: forceData.data,
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: 'Сила торможения'
+            }], {
+                title: 'Сила торможения',
+                xaxis: { title: 'Скорость' },
+                yaxis: { title: 'Сила' }
+            });
+        }
+
+        if (motionData && motionData.time) {
+            Plotly.newPlot('motion-chart', [
+                {
+                    x: motionData.time,
+                    y: motionData.distance,
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: 'Путь'
+                },
+                {
+                    x: motionData.time,
+                    y: motionData.speed,
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: 'Скорость'
+                },
+                {
+                    x: motionData.time,
+                    y: motionData.overload,
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: 'Перегрузка'
+                }
+            ], {
+                title: 'Тормозная характеристика',
+                xaxis: { title: 'Время' },
+                yaxis: { title: 'Значения' }
+            });
+        }
+
+        const menuBtn = document.getElementById('menu-toggle');
+        const sidebar = document.querySelector('.sidebar');
+        const body = document.body;
+
+        menuBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+            body.classList.toggle('sidebar-open');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,396 @@
+{% load static %}
+{% load custom_filters %}
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>AMCB</title>
+
+	<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+	<link rel="icon" href="{% static 'images/logo1_1.png' %}" type="image/x-icon">
+	<link rel="stylesheet" href="{% static 'css/styles.css' %}">
+	<script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+	
+	<style>
+		.chart-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 10px;
+			padding: 0 5px;
+		}
+		
+		.chart-header h3 {
+			margin: 0;
+			font-size: 18px;
+			font-weight: 600;
+		}
+		
+		.chart-buttons {
+			display: flex;
+			gap: 8px;
+		}
+		
+		.chart-buttons .submit-button {
+			width: auto;
+			padding: 5px 10px;
+			margin-bottom: 0;
+			font-size: 14px;
+		}
+		
+		#force-chart, #motion-chart {
+			width: 100%;
+			height: 400px;
+			border-radius: 8px;
+			background-color: #ffffff;
+			box-shadow: 0 3px 5px rgba(0, 0, 0, 0.1);
+		}
+	</style>
+</head>
+
+<body>
+	<!-- Шапка -->
+	<div class="header">
+		<button id="menu-toggle" class="menu-btn">☰</button>
+
+		<div class="logo-container">
+			<img src="{% static 'images/logo1.png' %}" alt="Логотип 1" class="logo1">
+			<h1>AMCB EddyCurrent Simulation</h1>
+			<img src="{% static 'images/logo2.png' %}" alt="Логотип 2" class="logo2">
+		</div>
+	</div>
+
+	<!-- Зона активации и панель -->
+	<div class="sidebar-trigger"></div>
+	<div class="sidebar">
+		<ul class="menu">
+			<li class="menu-item"><a href="{% url 'brake:brake_view' %}">1 — Непрерывное интегрирование</a></li>
+			<li class="menu-item"><a href="{% url 'brake:brake_form2' %}">2 — Пошаговое интегрирование</a></li>
+			<li class="menu-item"><a href="{% url 'brake:brake_form3' %}">3 — Импорт из файла</a></li>
+		</ul>
+	</div>
+
+	<div class="main-content">
+		<div class="container">
+			<div class="form-charts-container">
+				<form id="brake-form2">
+					{% csrf_token %}
+					<div class="form-row">
+						<div class="form-column">
+							<h3>Основные параметры</h3>
+							<div>{{ form.mass.label_tag }} {{ form.mass }}</div>
+							<div>{{ form.initial_speed.label_tag }} {{ form.initial_speed }}</div>
+							<div>{{ form.dt.label_tag }} {{ form.dt }}</div>
+
+							<div class="current-data">
+								<h4>Текущие данные</h4>
+								<div class="data-field">
+									<label><strong>Время (с):</strong></label>
+									<div id="time-value">0</div>
+								</div>
+								<div class="data-field">
+									<label><strong>Скорость (м/с):</strong></label>
+									<div id="speed-value">0</div>
+								</div>
+								<div class="data-field">
+									<label><strong>Ускорение (м/с²):</strong></label>
+									<div id="acceleration-value">0</div>
+								</div>
+								<div class="data-field">
+									<label><strong>Путь (м):</strong></label>
+									<div id="distance-value">0</div>
+								</div>
+							</div>
+						</div>
+
+						<div class="form-column">
+							<h3>Параметры магнитной системы</h3>
+							<div>{{ form.gamma.label_tag }} {{ form.gamma }}</div>
+							<div>{{ form.delta.label_tag }} {{ form.delta }}</div>
+							<div>{{ form.xm.label_tag }} {{ form.xm }}</div>
+							<div>{{ form.ym.label_tag }} {{ form.ym }}</div>
+							<div>{{ form.dh1.label_tag }} {{ form.dh1 }}</div>
+							<div>{{ form.dh2.label_tag }} {{ form.dh2 }}</div>
+							<div>{{ form.dm.label_tag }} {{ form.dm }}</div>
+							<div>{{ form.n.label_tag }} {{ form.n }}</div>
+							<div>{{ form.mu.label_tag }} {{ form.mu }}</div>
+							<div>{{ form.bz.label_tag }} {{ form.bz }}</div>
+						</div>
+					</div>
+
+					<!-- Сплит-кнопка -->
+					<div class="split-button" style="display:flex; gap:10px; margin-bottom:12px;">
+						<button type="button" id="btn-kgc" class="submit-button">КГС</button>
+						<button type="button" id="btn-th" class="submit-button" disabled>ТХ</button>
+					</div>
+
+					<button type="button" id="fill-btn" class="submit-button">Подставить шаблонные данные</button>
+					<button type="button" id="clear-button" class="clear-button">Очистить</button>
+				</form>
+
+				<div class="graphs-block">
+					<!-- График силы торможения с кнопками -->
+					<div>
+						<div class="chart-header">
+							<h3>График силы торможения</h3>
+							<div class="chart-buttons">
+								<button class="submit-button" id="dlForcePng">PNG</button>
+								<button class="submit-button" id="dlForceCsv">CSV</button>
+							</div>
+						</div>
+						<div id="force-chart"></div>
+					</div>
+					
+					<!-- График движения с кнопками -->
+					<div>
+						<div class="chart-header">
+							<h3>Тормозная характеристика</h3>
+							<div class="chart-buttons">
+								<button class="submit-button" id="dlMotionPng">PNG</button>
+								<button class="submit-button" id="dlMotionCsv">CSV</button>
+							</div>
+						</div>
+						<div id="motion-chart"></div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<script>
+		document.addEventListener('DOMContentLoaded', function () {
+
+			let currentState = {
+				v: parseFloat(document.querySelector('input[name="initial_speed"]').value),
+				x: 0,
+				time: 0
+			};
+			let forceData = { labels: [], data: [] };
+			let motionData = { time: [], distance: [], speed: [], overload: [] };
+
+			const plotLayout = { 
+				margin: { t: 40, r: 30, b: 50, l: 60 },
+				autosize: true,
+				width: 850,
+				height: 420,
+			};
+
+			const plotConfig = { responsive: true };
+
+			// ===== Инициализация графиков =====
+			Plotly.newPlot('force-chart', [{
+				x: [], y: [], type: 'scatter', mode: 'lines+markers', name: 'Сила торможения'
+			}], plotLayout, plotConfig);
+
+			Plotly.newPlot('motion-chart', [
+				{x: [], y: [], type:'scatter', mode:'lines', name:'Путь (м)'},
+				{x: [], y: [], type:'scatter', mode:'lines', name:'Скорость (м/с)'},
+				{x: [], y: [], type:'scatter', mode:'lines', name:'Перегрузка (g)'}
+			], plotLayout, plotConfig);
+			
+
+			// ===== Функции скачивания =====
+			function downloadPlotlyPng(chartId, filename) {
+				Plotly.downloadImage(chartId, {
+					format: 'png',
+					width: 1200,
+					height: 600,
+					filename: filename
+				});
+			}
+
+			function downloadCsv(data, filename, headers, columns) {
+				let csv = headers.join(',') + '\n';
+				for (let i = 0; i < data[columns[0]].length; i++) {
+					const row = columns.map(col => data[col][i]).join(',');
+					csv += row + '\n';
+				}
+				
+				const blob = new Blob([csv], { type: 'text/csv' });
+				const url = URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.href = url;
+				a.download = filename;
+				a.click();
+				URL.revokeObjectURL(url);
+			}
+
+			// ===== Кнопки скачивания для графика силы =====
+			document.getElementById('dlForcePng').addEventListener('click', function() {
+				downloadPlotlyPng('force-chart', 'force_chart');
+			});
+
+			document.getElementById('dlForceCsv').addEventListener('click', function() {
+				if (forceData.labels.length > 0) {
+					const exportData = {
+						labels: forceData.labels,
+						data: forceData.data
+					};
+					downloadCsv(exportData, 'force_data.csv', ['Скорость (м/с)', 'Сила (кгс)'], ['labels', 'data']);
+				} else {
+					alert('Нет данных для скачивания');
+				}
+			});
+
+			// ===== Кнопки скачивания для графика движения =====
+			document.getElementById('dlMotionPng').addEventListener('click', function() {
+				downloadPlotlyPng('motion-chart', 'motion_chart');
+			});
+
+			document.getElementById('dlMotionCsv').addEventListener('click', function() {
+				if (motionData.time.length > 0) {
+					downloadCsv(motionData, 'motion_data.csv', 
+						['Время (с)', 'Путь (м)', 'Скорость (м/с)', 'Перегрузка (g)'], 
+						['time', 'distance', 'speed', 'overload']);
+				} else {
+					alert('Нет данных для скачивания');
+				}
+			});
+
+			// ===== Обработчик КГС =====
+			const btnKgc = document.getElementById('btn-kgc');
+			const btnTh  = document.getElementById('btn-th');
+
+			btnKgc.addEventListener('click', function () {
+				let formData = new FormData(document.querySelector('#brake-form2'));
+				let data = { ...currentState };
+				formData.forEach((value, key) => data[key] = parseFloat(value));
+
+				if (!data.mass || !data.initial_speed || !data.dt || !data.gamma || !data.delta || !data.xm || !data.ym || !data.dh1 || !data.dh2 || !data.dm || !data.n || !data.mu || !data.bz) {
+					alert("Пожалуйста, заполните все поля формы.");
+					return;
+				}
+
+				fetch("{% url 'brake:brake_form2' %}", {
+					method: 'POST',
+					headers: {'Content-Type': 'application/json','X-CSRFToken': '{{ csrf_token }}'},
+					body: JSON.stringify(data)
+				})
+				.then(resp => resp.json())
+				.then(step => {
+					if (step.force !== undefined) {
+						currentState.v = step.v ?? currentState.v;
+						currentState.x = step.x ?? currentState.x;
+						currentState.time += parseFloat(document.querySelector('input[name="dt"]').value);
+
+						forceData.labels.push(currentState.v);
+						forceData.data.push(step.force);
+
+						motionData.time.push(currentState.time);
+						motionData.distance.push(currentState.x);
+						motionData.speed.push(currentState.v);
+						motionData.overload.push(step.overload ?? 0);
+
+						Plotly.extendTraces('force-chart', {
+							x: [[currentState.v]],
+							y: [[step.force]]
+						}, [0]);
+						
+						// Обновляем график движения (перерисовываем полностью для корректного отображения)
+						Plotly.react('motion-chart', [
+							{ x: motionData.time, y: motionData.distance, type: 'scatter', mode: 'lines', name: 'Путь (м)' },
+							{ x: motionData.time, y: motionData.speed, type: 'scatter', mode: 'lines', name: 'Скорость (м/с)' },
+							{ x: motionData.time, y: motionData.overload, type: 'scatter', mode: 'lines', name: 'Перегрузка (g)' }
+						], plotLayout, plotConfig);
+						
+						document.getElementById('time-value').innerText = currentState.time.toFixed(2);
+						document.getElementById('speed-value').innerText = currentState.v.toFixed(2);
+						document.getElementById('acceleration-value').innerText = (step.acceleration ?? 0).toFixed(2);
+						document.getElementById('distance-value').innerText = currentState.x.toFixed(2);
+
+						btnTh.disabled = false;
+					}
+				})
+				.catch(err => {
+					console.error(err);
+					alert("Ошибка при получении данных для КГС.");
+				});
+			});
+
+			// ===== Обработчик ТХ =====
+			btnTh.addEventListener('click', function () {
+				const n = forceData.labels.length;
+				if (n === 0) {
+					alert("Сначала постройте КГС хотя бы один раз.");
+					btnTh.disabled = true;
+					return;
+				}
+
+				const timeSlice = motionData.time.slice(0, n);
+				const distSlice = motionData.distance.slice(0, n);
+				const speedSlice = motionData.speed.slice(0, n);
+				const overloadSlice = motionData.overload.slice(0, n);
+
+				Plotly.newPlot('motion-chart', [
+					{ x: timeSlice, y: distSlice, type: 'scatter', mode: 'lines', name: 'Путь (м)' },
+					{ x: timeSlice, y: speedSlice, type: 'scatter', mode: 'lines', name: 'Скорость (м/с)' },
+					{ x: timeSlice, y: overloadSlice, type: 'scatter', mode: 'lines', name: 'Перегрузка (g)' }
+				], plotLayout, plotConfig);
+			});
+
+			// ===== Очистка =====
+			document.getElementById('clear-button').addEventListener('click', function () {
+				Plotly.react('force-chart', [{
+					x: [], y: [], type: 'scatter', mode: 'lines+markers', name: 'Сила торможения'
+				}], plotLayout, plotConfig);
+
+				Plotly.react('motion-chart', [
+					{x: [], y: [], type:'scatter', mode:'lines', name:'Путь (м)'},
+					{x: [], y: [], type:'scatter', mode:'lines', name:'Скорость (м/с)'},
+					{x: [], y: [], type:'scatter', mode:'lines', name:'Перегрузка (g)'}
+				], plotLayout, plotConfig);
+
+				document.getElementById('time-value').innerText = '0';
+				document.getElementById('speed-value').innerText = '0';
+				document.getElementById('acceleration-value').innerText = '0';
+				document.getElementById('distance-value').innerText = '0';
+				document.getElementById('brake-form2').reset();
+				
+				currentState = {
+					v: parseFloat(document.querySelector('input[name="initial_speed"]').value),
+					x: 0,
+					time: 0
+				};
+				forceData = {labels:[], data:[]};
+				motionData = {time:[], distance:[], speed:[], overload:[]};
+				btnTh.disabled = true;
+			});
+
+			// ===== Заполнение шаблонными данными =====
+			document.getElementById('fill-btn').addEventListener('click', function(){
+				const templateData = {
+					mass: '15',
+					initial_speed: '26',
+					dt: 0.001,
+					gamma: '56600000',
+					delta: '0.003',
+					xm: '0.02',
+					ym: '0.1',
+					dh1: 0.01,
+					dh2: 0.01,
+					dm: '0.016',
+					n: 4,
+					mu: 1,
+					bz: '0.86'
+				};
+				for(const key in templateData){
+					const el=document.querySelector(`[name="${key}"]`);
+					if(el) el.value=templateData[key];
+				}
+			});
+		});
+
+		// === Управление боковой панелью ===
+		const menuBtn = document.getElementById('menu-toggle');
+		const sidebar = document.querySelector('.sidebar');
+		const body = document.body;
+
+		menuBtn.addEventListener('click', () => {
+			sidebar.classList.toggle('active');
+			body.classList.toggle('sidebar-open');
+		});
+	</script>
+</body>
+</html>
