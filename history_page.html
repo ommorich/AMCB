@@ -1,0 +1,509 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMCB - История расчётов</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="icon" href="{% static 'images/logo1_1.png' %}" type="image/x-icon">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+
+    <style>
+        .history-block {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
+            padding: 16px;
+        }
+        
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .history-header h3 {
+            margin: 0;
+        }
+        
+        .delete-all-btn {
+            background: linear-gradient(45deg, #ff4b2b, #ff416c);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(255, 75, 43, 0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .delete-all-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(255, 75, 43, 0.4);
+        }
+        
+        .delete-all-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .records-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .records-table th,
+        .records-table td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #e8e8e8;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .records-table th {
+            background: #f7f9fc;
+            font-weight: 600;
+        }
+
+        .records-table tr:hover {
+            background: #fafcff;
+        }
+
+        .scroll-cell {
+            max-width: 350px;
+            max-height: 140px;
+            overflow: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+            background: #fafafa;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        .graph-link {
+            display: inline-block;
+            text-decoration: none;
+            color: white;
+            background: linear-gradient(45deg, #007bff, #00c6ff);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+            transition: transform 0.2s;
+            margin-right: 8px;
+        }
+
+        .graph-link:hover {
+            transform: translateY(-2px);
+        }
+        
+        .delete-btn {
+            display: inline-block;
+            background: linear-gradient(45deg, #ff4b2b, #ff416c);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(255, 75, 43, 0.3);
+            transition: transform 0.2s;
+            font-size: 13px;
+        }
+        
+        .delete-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(255, 75, 43, 0.4);
+        }
+        
+        .title-cell {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .no-title {
+            color: #999;
+            font-style: italic;
+        }
+        
+        .actions-cell {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+        
+        .modal h4 {
+            margin: 0 0 15px 0;
+            font-size: 20px;
+        }
+        
+        .modal p {
+            margin: 0 0 20px 0;
+            color: #666;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        
+        .modal-btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .modal-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .modal-btn.confirm {
+            background: linear-gradient(45deg, #ff4b2b, #ff416c);
+            color: white;
+        }
+        
+        .modal-btn.cancel {
+            background: #e0e0e0;
+            color: #333;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 2000;
+            animation: slideIn 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .notification.success {
+            background: linear-gradient(45deg, #28a745, #20c997);
+        }
+        
+        .notification.error {
+            background: linear-gradient(45deg, #ff4b2b, #ff416c);
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <button id="menu-toggle" class="menu-btn">☰</button>
+        <div class="logo-container">
+            <img src="{% static 'images/logo1.png' %}" alt="Логотип 1" class="logo1">
+            <h1>AMCB EddyCurrent Simulation</h1>
+            <img src="{% static 'images/logo2.png' %}" alt="Логотип 2" class="logo2">
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <ul class="menu">
+            <li class="menu-item"><a href="{% url 'brake:brake_view' %}">1 — Непрерывное интегрирование</a></li>
+            <li class="menu-item"><a href="{% url 'brake:brake_form2' %}">2 — Пошаговое интегрирование</a></li>
+            <li class="menu-item"><a href="{% url 'brake:brake_form3' %}">3 — Импорт из файла</a></li>
+            <li class="menu-item"><a href="{% url 'brake:history_page' %}">4 — История расчётов</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <div class="container">
+            <div class="history-block">
+                <div class="history-header">
+                    <h3>История расчётов</h3>
+                    {% if records %}
+                    <button class="delete-all-btn" id="deleteAllBtn">🗑️ Удалить все</button>
+                    {% endif %}
+                </div>
+
+                <table class="records-table" id="historyTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Название</th>
+                            <th>Тип</th>
+                            <th>Дата</th>
+                            <th>Действия</th>
+                            <th>Исходные данные</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in records %}
+                        <tr id="record-{{ item.id }}">
+                            <td>{{ item.id }}</td>
+                            <td class="title-cell">
+                                {% if item.title %}
+                                    {{ item.title }}
+                                {% else %}
+                                    <span class="no-title">Без названия</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ item.get_source_page_display }}</td>
+                            <td>{{ item.created_at|date:"d.m.Y H:i:s" }}</td>
+                            <td>
+                                <div class="actions-cell">
+                                    <a class="graph-link" href="{% url 'brake:history_detail' item.id %}">
+                                        📊 Открыть
+                                    </a>
+                                    <button class="delete-btn" data-id="{{ item.id }}" onclick="deleteRecord(this.dataset.id)">
+                                        🗑️ Удалить
+                                    </button>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="scroll-cell">{{ item.source_data }}</div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 40px; color: #999;">
+                                История пока пустая. Выполните расчёт, чтобы увидеть его здесь.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно подтверждения -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal">
+            <h4 id="modalTitle">Подтверждение удаления</h4>
+            <p id="modalMessage">Вы уверены, что хотите удалить эту запись?</p>
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" onclick="closeModal()">Отмена</button>
+                <button class="modal-btn confirm" id="confirmDeleteBtn">Удалить</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const menuBtn = document.getElementById('menu-toggle');
+        const sidebar = document.querySelector('.sidebar');
+        const body = document.body;
+
+        menuBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+            body.classList.toggle('sidebar-open');
+        });
+        
+        // Функция для получения CSRF токена
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        
+        // Показать уведомление
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+        
+        // Модальное окно
+        let pendingDeleteId = null;
+        
+        function openModal(title, message, onConfirm) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalMessage').textContent = message;
+            document.getElementById('deleteModal').style.display = 'flex';
+            
+            const confirmBtn = document.getElementById('confirmDeleteBtn');
+            const newConfirmBtn = confirmBtn.cloneNode(true);
+            confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+            
+            newConfirmBtn.addEventListener('click', () => {
+                closeModal();
+                onConfirm();
+            });
+        }
+        
+        function closeModal() {
+            document.getElementById('deleteModal').style.display = 'none';
+            pendingDeleteId = null;
+        }
+        
+        // Делаем функцию глобальной
+        window.deleteRecord = async function(id) {
+            openModal(
+                'Удаление записи',
+                `Вы уверены, что хотите удалить запись #${id}? Это действие нельзя отменить.`,
+                async () => {
+                    try {
+                        const response = await fetch(`/brake/api/history/${id}/delete/`, {
+                            method: 'DELETE',
+                            headers: {
+                                'X-CSRFToken': getCookie('csrftoken')
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            const row = document.getElementById(`record-${id}`);
+                            if (row) {
+                                row.remove();
+                            }
+                            
+                            // Проверяем, остались ли записи
+                            const tbody = document.querySelector('#historyTable tbody');
+                            if (tbody.children.length === 0) {
+                                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: #999;">История пока пустая. Выполните расчёт, чтобы увидеть его здесь.</td></tr>';
+                                const deleteAllBtn = document.querySelector('.delete-all-btn');
+                                if (deleteAllBtn) deleteAllBtn.remove();
+                            }
+                            
+                            showNotification(`Запись #${id} успешно удалена`, 'success');
+                        } else {
+                            const error = await response.json();
+                            showNotification(error.error || 'Ошибка при удалении записи', 'error');
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        showNotification('Ошибка при удалении записи', 'error');
+                    }
+                }
+            );
+        };
+        
+        // Удаление всех записей
+        async function deleteAllRecords() {
+            const rows = document.querySelectorAll('#historyTable tbody tr[id^="record-"]');
+            const count = rows.length;
+            
+            if (count === 0) {
+                showNotification('Нет записей для удаления', 'error');
+                return;
+            }
+            
+            openModal(
+                'Удаление всех записей',
+                `Вы уверены, что хотите удалить ВСЕ записи (${count} шт.)? Это действие нельзя отменить.`,
+                async () => {
+                    try {
+                        const response = await fetch('/brake/api/history/delete-all/', {
+                            method: 'DELETE',
+                            headers: {
+                                'X-CSRFToken': getCookie('csrftoken')
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            const tbody = document.querySelector('#historyTable tbody');
+                            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: #999;">История пока пустая. Выполните расчёт, чтобы увидеть его здесь.</td></tr>';
+                            const deleteAllBtn = document.querySelector('.delete-all-btn');
+                            if (deleteAllBtn) deleteAllBtn.remove();
+                            showNotification('Все записи успешно удалены', 'success');
+                        } else {
+                            const error = await response.json();
+                            showNotification(error.error || 'Ошибка при удалении записей', 'error');
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        showNotification('Ошибка при удалении записей', 'error');
+                    }
+                }
+            );
+        }
+        
+        // Ждем загрузки DOM
+        document.addEventListener('DOMContentLoaded', () => {
+            // Привязываем обработчик к кнопке "Удалить все"
+            const deleteAllBtn = document.getElementById('deleteAllBtn');
+            if (deleteAllBtn) {
+                deleteAllBtn.addEventListener('click', deleteAllRecords);
+            }
+            
+            // Закрытие модального окна по клику на оверлей
+            const modal = document.getElementById('deleteModal');
+            if (modal) {
+                modal.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('modal-overlay')) {
+                        closeModal();
+                    }
+                });
+            }
+            
+            // Закрытие по Escape
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closeModal();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

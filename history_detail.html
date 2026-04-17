@@ -1,0 +1,217 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMCB - {{ record.title|default:"Просмотр расчёта" }} #{{ record.id }}</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="icon" href="{% static 'images/logo1_1.png' %}" type="image/x-icon">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+
+    <style>
+        .detail-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .detail-card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
+            padding: 16px;
+        }
+
+        .json-block {
+            white-space: pre-wrap;
+            word-break: break-word;
+            background: #fafafa;
+            padding: 12px;
+            border-radius: 8px;
+            overflow: auto;
+            max-height: 300px;
+        }
+
+        #force-chart, #motion-chart {
+            width: 100%;
+            height: 420px;
+            border-radius: 8px;
+            background-color: #ffffff;
+            box-shadow: 0 3px 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #007bff;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <button id="menu-toggle" class="menu-btn">☰</button>
+        <div class="logo-container">
+            <img src="{% static 'images/logo1.png' %}" alt="Логотип 1" class="logo1">
+            <h1>AMCB EddyCurrent Simulation</h1>
+            <img src="{% static 'images/logo2.png' %}" alt="Логотип 2" class="logo2">
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <ul class="menu">
+            <li class="menu-item"><a href="{% url 'brake:brake_view' %}">1 — Непрерывное интегрирование</a></li>
+            <li class="menu-item"><a href="{% url 'brake:brake_form2' %}">2 — Пошаговое интегрирование</a></li>
+            <li class="menu-item"><a href="{% url 'brake:brake_form3' %}">3 — Импорт из файла</a></li>
+            <li class="menu-item"><a href="{% url 'brake:history_page' %}">4 — История расчётов</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <div class="container">
+            <a href="{% url 'brake:history_page' %}" class="back-link">← Назад к истории</a>
+            
+            <div class="detail-grid">
+                <div class="detail-card">
+                    <h3>{{ record.title|default:"Расчёт" }} #{{ record.id }}</h3>
+                    <p><strong>Дата:</strong> {{ record.created_at|date:"d.m.Y H:i:s" }}</p>
+                    <p><strong>Тип расчёта:</strong> {{ record.get_source_page_display }}</p>
+                    {% if record.title %}
+                    <p><strong>Название:</strong> {{ record.title }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="detail-card">
+                    <h3>Исходные данные</h3>
+                    <div class="json-block">{{ record.source_data }}</div>
+                </div>
+
+                <div class="detail-card">
+                    <h3>График силы торможения</h3>
+                    <div id="force-chart"></div>
+                </div>
+
+                <div class="detail-card">
+                    <h3>Тормозная характеристика</h3>
+                    <div id="motion-chart"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function safeParse(str) {
+            if (!str || str === 'null' || str === 'undefined') return null;
+            try { return JSON.parse(str); } catch (e) { return null; }
+        }
+        
+        function getDefaultLayout(title, xTitle, yTitle) {
+            return {
+                title: { text: title, font: { size: 20 } },
+                xaxis: { title: { text: xTitle, font: { size: 16 } }, tickfont: { size: 12 } },
+                yaxis: { title: { text: yTitle, font: { size: 16 } }, tickfont: { size: 12 } },
+                legend: { font: { size: 14 } },
+                hovermode: 'x unified',
+                hoverlabel: { bgcolor: "white", font: { size: 14, color: "black" } },
+                margin: { t: 50, l: 70, r: 50, b: 50 }
+            };
+        }
+
+        const forceData = safeParse('{{ force_data|escapejs }}');
+        const motionData = safeParse('{{ motion_data|escapejs }}');
+
+        if (forceData && forceData.labels && forceData.data) {
+            const traceForce = {
+                x: forceData.labels,
+                y: forceData.data,
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: 'Сила торможения (кгс)',
+                line: { color: '#ff7f0e', width: 3 },
+                marker: { color: '#ff7f0e', size: 6 },
+                hovertemplate: 'Сила: %{y:.2f} кгс<extra></extra>'
+            };
+            
+            const layoutForce = getDefaultLayout('Сила торможения', 'Скорость (м/с)', 'Сила (кгс)');
+            Plotly.newPlot('force-chart', [traceForce], layoutForce);
+        } else {
+            document.getElementById('force-chart').innerHTML = '<p style="text-align: center; padding: 50px; color: #999;">Нет данных для отображения</p>';
+        }
+
+        if (motionData && motionData.time && motionData.distance && motionData.speed) {
+            const lastIndex = motionData.time.length - 1;
+            const finalDistance = motionData.distance[lastIndex].toFixed(2);
+            const finalSpeed = motionData.speed[lastIndex].toFixed(2);
+            
+            let overload = motionData.overload || [];
+            if (overload.length === 0) {
+                overload = [0];
+                const g = 9.8;
+                for (let i = 1; i < motionData.speed.length; i++) {
+                    const dt = motionData.time[i] - motionData.time[i-1];
+                    const dv = Math.abs(motionData.speed[i] - motionData.speed[i-1]);
+                    overload.push(dv / (dt * g));
+                }
+            }
+            const finalOverload = overload[lastIndex].toFixed(2);
+            
+            const traceMotion = {
+                x: motionData.time,
+                y: motionData.distance,
+                type: 'scatter',
+                mode: 'lines',
+                name: `Путь: ${finalDistance} м`,
+                line: { color: '#1f77b4', width: 3 },
+                hovertemplate: 'Путь: %{y:.2f} м<extra></extra>'
+            };
+            
+            const traceSpeed = {
+                x: motionData.time,
+                y: motionData.speed,
+                type: 'scatter',
+                mode: 'lines',
+                name: `Скорость: ${finalSpeed} м/с`,
+                line: { color: '#2ca02c', width: 3 },
+                hovertemplate: 'Скорость: %{y:.2f} м/с<extra></extra>'
+            };
+            
+            const traceOverload = {
+                x: motionData.time,
+                y: overload,
+                type: 'scatter',
+                mode: 'lines',
+                name: `Перегрузка: ${finalOverload} g`,
+                line: { color: '#d62728', width: 3 },
+                hovertemplate: 'Перегрузка: %{y:.2f} g<extra></extra>'
+            };
+            
+            const layoutMotion = getDefaultLayout(
+                `Тормозная характеристика (S=${finalDistance} м, V=${finalSpeed} м/с, g=${finalOverload})`,
+                'Время (с)', 
+                'Путь (м) / Скорость (м/с) / Перегрузка (g)'
+            );
+            
+            Plotly.newPlot('motion-chart', [traceMotion, traceSpeed, traceOverload], layoutMotion);
+        } else {
+            document.getElementById('motion-chart').innerHTML = '<p style="text-align: center; padding: 50px; color: #999;">Нет данных для отображения</p>';
+        }
+
+        const menuBtn = document.getElementById('menu-toggle');
+        const sidebar = document.querySelector('.sidebar');
+        const body = document.body;
+
+        menuBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+            body.classList.toggle('sidebar-open');
+        });
+    </script>
+</body>
+</html>
