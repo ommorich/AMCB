@@ -1,4 +1,6 @@
 {% load static %}
+{% load custom_filters %}
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -20,19 +22,101 @@
 
         .detail-card {
             background: #fff;
-            border-radius: 8px;
+            border-radius: 10px;
             box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
-            padding: 16px;
+            padding: 18px;
         }
 
-        .json-block {
-            white-space: pre-wrap;
-            word-break: break-word;
-            background: #fafafa;
-            padding: 12px;
+        .detail-card h3 {
+            margin-top: 0;
+            margin-bottom: 14px;
+            color: #333;
+        }
+
+        .record-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 10px;
+        }
+
+        .meta-item {
+            background: #f7f9fc;
             border-radius: 8px;
-            overflow: auto;
-            max-height: 300px;
+            padding: 10px 12px;
+        }
+
+        .meta-label {
+            display: block;
+            font-size: 12px;
+            color: #777;
+            margin-bottom: 4px;
+        }
+
+        .meta-value {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .type-badge {
+            display: inline-block;
+            padding: 5px 9px;
+            border-radius: 999px;
+            background: #eef5ff;
+            color: #1b67b1;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .source-table-wrap {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .source-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            overflow: hidden;
+            border-radius: 8px;
+            border: 1px solid #e8e8e8;
+        }
+
+        .source-table th,
+        .source-table td {
+            padding: 11px 12px;
+            border-bottom: 1px solid #e8e8e8;
+            vertical-align: top;
+            line-height: 1.4;
+        }
+
+        .source-table th {
+            background: #f7f9fc;
+            font-weight: 600;
+            color: #333;
+            text-align: left;
+        }
+
+        .source-table td:first-child {
+            width: 280px;
+            font-weight: 600;
+            color: #444;
+            background: #fcfcfc;
+        }
+
+        .source-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .source-table tr:hover td {
+            background: #f9fbff;
+        }
+
+        .source-empty {
+            color: #999;
+            font-style: italic;
+            background: #fafafa;
+            border-radius: 8px;
+            padding: 12px;
         }
 
         #force-chart, #motion-chart {
@@ -44,15 +128,29 @@
         }
         
         .back-link {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             margin-bottom: 20px;
-            color: #007bff;
+            color: white;
+            background: linear-gradient(45deg, #007bff, #00c6ff);
             text-decoration: none;
-            font-weight: 500;
+            font-weight: 600;
+            padding: 10px 14px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 123, 255, 0.25);
+            transition: transform 0.2s, box-shadow 0.2s;
         }
         
         .back-link:hover {
-            text-decoration: underline;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 123, 255, 0.35);
+        }
+
+        .chart-empty {
+            text-align: center;
+            padding: 50px;
+            color: #999;
         }
     </style>
 </head>
@@ -77,21 +175,63 @@
 
     <div class="main-content">
         <div class="container">
-            <a href="{% url 'brake:history_page' %}" class="back-link">← Назад к истории</a>
+            <a href="{% url 'brake:history_page' %}" class="back-link">Назад к истории</a>
             
             <div class="detail-grid">
                 <div class="detail-card">
                     <h3>{{ record.title|default:"Расчёт" }} #{{ record.id }}</h3>
-                    <p><strong>Дата:</strong> {{ record.created_at|date:"d.m.Y H:i:s" }}</p>
-                    <p><strong>Тип расчёта:</strong> {{ record.get_source_page_display }}</p>
-                    {% if record.title %}
-                    <p><strong>Название:</strong> {{ record.title }}</p>
-                    {% endif %}
+
+                    <div class="record-meta">
+                        <div class="meta-item">
+                            <span class="meta-label">Дата</span>
+                            <span class="meta-value">{{ record.created_at|date:"d.m.Y H:i:s" }}</span>
+                        </div>
+
+                        <div class="meta-item">
+                            <span class="meta-label">Тип расчёта</span>
+                            <span class="type-badge">{{ record.get_source_page_display }}</span>
+                        </div>
+
+                        <div class="meta-item">
+                            <span class="meta-label">Название</span>
+                            <span class="meta-value">
+                                {% if record.title %}
+                                    {{ record.title }}
+                                {% else %}
+                                    Без названия
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="detail-card">
                     <h3>Исходные данные</h3>
-                    <div class="json-block">{{ record.source_data }}</div>
+
+                    {% with rows=record.source_data|json_table_items %}
+                        {% if rows %}
+                            <div class="source-table-wrap">
+                                <table class="source-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Параметр</th>
+                                            <th>Значение</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for row in rows %}
+                                        <tr>
+                                            <td>{{ row.key }}</td>
+                                            <td>{{ row.value }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="source-empty">Нет исходных данных</div>
+                        {% endif %}
+                    {% endwith %}
                 </div>
 
                 <div class="detail-card">
@@ -109,59 +249,131 @@
 
     <script>
         function safeParse(str) {
-            if (!str || str === 'null' || str === 'undefined') return null;
-            try { return JSON.parse(str); } catch (e) { return null; }
+            if (!str || str === 'null' || str === 'undefined') {
+                return null;
+            }
+
+            try {
+                return JSON.parse(str);
+            } catch (error) {
+                console.error(error);
+                return null;
+            }
         }
         
         function getDefaultLayout(title, xTitle, yTitle) {
             return {
-                title: { text: title, font: { size: 20 } },
-                xaxis: { title: { text: xTitle, font: { size: 16 } }, tickfont: { size: 12 } },
-                yaxis: { title: { text: yTitle, font: { size: 16 } }, tickfont: { size: 12 } },
-                legend: { font: { size: 14 } },
+                title: {
+                    text: title,
+                    font: {
+                        size: 20
+                    }
+                },
+                xaxis: {
+                    title: {
+                        text: xTitle,
+                        font: {
+                            size: 16
+                        }
+                    },
+                    tickfont: {
+                        size: 12
+                    }
+                },
+                yaxis: {
+                    title: {
+                        text: yTitle,
+                        font: {
+                            size: 16
+                        }
+                    },
+                    tickfont: {
+                        size: 12
+                    }
+                },
+                legend: {
+                    font: {
+                        size: 14
+                    }
+                },
                 hovermode: 'x unified',
-                hoverlabel: { bgcolor: "white", font: { size: 14, color: "black" } },
-                margin: { t: 50, l: 70, r: 50, b: 50 }
+                hoverlabel: {
+                    bgcolor: "white",
+                    font: {
+                        size: 14,
+                        color: "black"
+                    }
+                },
+                margin: {
+                    t: 50,
+                    l: 70,
+                    r: 50,
+                    b: 50
+                }
             };
         }
 
         const forceData = safeParse('{{ force_data|escapejs }}');
         const motionData = safeParse('{{ motion_data|escapejs }}');
 
-        if (forceData && forceData.labels && forceData.data) {
+        if (forceData && forceData.labels && forceData.data && forceData.labels.length > 0) {
             const traceForce = {
                 x: forceData.labels,
                 y: forceData.data,
                 type: 'scatter',
                 mode: 'lines+markers',
-                name: 'Сила торможения (кгс)',
-                line: { color: '#ff7f0e', width: 3 },
-                marker: { color: '#ff7f0e', size: 6 },
-                hovertemplate: 'Сила: %{y:.2f} кгс<extra></extra>'
+                name: 'Сила торможения',
+                line: {
+                    color: '#ff7f0e',
+                    width: 3
+                },
+                marker: {
+                    color: '#ff7f0e',
+                    size: 6
+                },
+                hovertemplate: 'Скорость: %{x:.3f} м/с<br>Сила: %{y:.3f} кгс<extra></extra>'
             };
             
-            const layoutForce = getDefaultLayout('Сила торможения', 'Скорость (м/с)', 'Сила (кгс)');
+            const layoutForce = getDefaultLayout(
+                'Сила торможения',
+                'Скорость (м/с)',
+                'Сила (кгс)'
+            );
+
             Plotly.newPlot('force-chart', [traceForce], layoutForce);
         } else {
-            document.getElementById('force-chart').innerHTML = '<p style="text-align: center; padding: 50px; color: #999;">Нет данных для отображения</p>';
+            document.getElementById('force-chart').innerHTML =
+                '<p class="chart-empty">Нет данных для отображения</p>';
         }
 
-        if (motionData && motionData.time && motionData.distance && motionData.speed) {
+        if (
+            motionData &&
+            motionData.time &&
+            motionData.distance &&
+            motionData.speed &&
+            motionData.time.length > 0
+        ) {
             const lastIndex = motionData.time.length - 1;
-            const finalDistance = motionData.distance[lastIndex].toFixed(2);
-            const finalSpeed = motionData.speed[lastIndex].toFixed(2);
+
+            const finalDistance = Number(motionData.distance[lastIndex]).toFixed(2);
+            const finalSpeed = Number(motionData.speed[lastIndex]).toFixed(2);
             
             let overload = motionData.overload || [];
-            if (overload.length === 0) {
+
+            if (!overload || overload.length === 0) {
                 overload = [0];
+
                 const g = 9.8;
+
                 for (let i = 1; i < motionData.speed.length; i++) {
-                    const dt = motionData.time[i] - motionData.time[i-1];
-                    const dv = Math.abs(motionData.speed[i] - motionData.speed[i-1]);
-                    overload.push(dv / (dt * g));
+                    const dt = motionData.time[i] - motionData.time[i - 1];
+                    const dv = Math.abs(motionData.speed[i] - motionData.speed[i - 1]);
+
+                    overload.push(dt !== 0 ? dv / (dt * g) : 0);
                 }
             }
-            const finalOverload = overload[lastIndex].toFixed(2);
+
+            const finalOverload = Number(overload[lastIndex] || 0).toFixed(2);
             
             const traceMotion = {
                 x: motionData.time,
@@ -169,8 +381,11 @@
                 type: 'scatter',
                 mode: 'lines',
                 name: `Путь: ${finalDistance} м`,
-                line: { color: '#1f77b4', width: 3 },
-                hovertemplate: 'Путь: %{y:.2f} м<extra></extra>'
+                line: {
+                    color: '#1f77b4',
+                    width: 3
+                },
+                hovertemplate: 'Время: %{x:.3f} с<br>Путь: %{y:.3f} м<extra></extra>'
             };
             
             const traceSpeed = {
@@ -179,8 +394,11 @@
                 type: 'scatter',
                 mode: 'lines',
                 name: `Скорость: ${finalSpeed} м/с`,
-                line: { color: '#2ca02c', width: 3 },
-                hovertemplate: 'Скорость: %{y:.2f} м/с<extra></extra>'
+                line: {
+                    color: '#2ca02c',
+                    width: 3
+                },
+                hovertemplate: 'Время: %{x:.3f} с<br>Скорость: %{y:.3f} м/с<extra></extra>'
             };
             
             const traceOverload = {
@@ -189,8 +407,11 @@
                 type: 'scatter',
                 mode: 'lines',
                 name: `Перегрузка: ${finalOverload} g`,
-                line: { color: '#d62728', width: 3 },
-                hovertemplate: 'Перегрузка: %{y:.2f} g<extra></extra>'
+                line: {
+                    color: '#d62728',
+                    width: 3
+                },
+                hovertemplate: 'Время: %{x:.3f} с<br>Перегрузка: %{y:.3f} g<extra></extra>'
             };
             
             const layoutMotion = getDefaultLayout(
@@ -201,17 +422,33 @@
             
             Plotly.newPlot('motion-chart', [traceMotion, traceSpeed, traceOverload], layoutMotion);
         } else {
-            document.getElementById('motion-chart').innerHTML = '<p style="text-align: center; padding: 50px; color: #999;">Нет данных для отображения</p>';
+            document.getElementById('motion-chart').innerHTML =
+                '<p class="chart-empty">Нет данных для отображения</p>';
         }
 
         const menuBtn = document.getElementById('menu-toggle');
         const sidebar = document.querySelector('.sidebar');
         const body = document.body;
 
-        menuBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('active');
-            body.classList.toggle('sidebar-open');
-        });
+        if (menuBtn && sidebar) {
+            menuBtn.addEventListener('click', function () {
+                sidebar.classList.toggle('active');
+                body.classList.toggle('sidebar-open');
+
+                setTimeout(function () {
+                    const forceChart = document.getElementById('force-chart');
+                    const motionChart = document.getElementById('motion-chart');
+
+                    if (forceChart && forceChart.data) {
+                        Plotly.Plots.resize(forceChart);
+                    }
+
+                    if (motionChart && motionChart.data) {
+                        Plotly.Plots.resize(motionChart);
+                    }
+                }, 300);
+            });
+        }
     </script>
 </body>
 </html>

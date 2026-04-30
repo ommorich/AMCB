@@ -5,6 +5,7 @@ from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods, require_POST
 from django.utils import timezone
 
 from .forms import BrakingForm
@@ -29,6 +30,60 @@ def save_history(source_page: str, source_data: dict, force_data: dict | None = 
     )
     return record
 
+
+def load_source_data_from_history(load_id, source_page):
+    if not load_id:
+        return {}, ""
+
+    try:
+        record = get_object_or_404(
+            CalculationHistory,
+            pk=load_id,
+            source_page=source_page
+        )
+
+        source_data = json.loads(record.source_data) if record.source_data else {}
+
+        if not isinstance(source_data, dict):
+            source_data = {}
+
+        title = record.title or source_data.get("calc_title", "")
+
+        return source_data, title
+
+    except Exception:
+        return {}, ""
+
+
+def source_data_to_form_initial(source_data):
+    allowed_fields = set(BrakingForm.base_fields.keys())
+    initial = {}
+
+    for key, value in source_data.items():
+        if key in allowed_fields:
+            initial[key] = value
+
+    if "initial_speed" not in initial and "v" in source_data:
+        initial["initial_speed"] = source_data["v"]
+
+    return initial
+
+def get_float(data, key, default=0.0):
+    value = data.get(key, default)
+
+    if value is None or value == "":
+        return float(default)
+
+    return float(value)
+
+
+def get_int(data, key, default=0):
+    value = data.get(key, default)
+
+    if value is None or value == "":
+        return int(default)
+
+    return int(value)
 
 def braking_force(v: float, wnn: float, m: float,
                   Gamma: int, Delta: float, Xm: float, Ym: float,
@@ -345,86 +400,113 @@ def brake_view(request):
             }
             return render(request, 'brake/brake_form.html', context)
     else:
-        form = BrakingForm()
+        source_data, calc_title = load_source_data_from_history(
+            request.GET.get("load_id"),
+            "brake_view"
+        )
 
-    return render(request, 'brake/brake_form.html', {'form': form})
+        form = BrakingForm(initial=source_data_to_form_initial(source_data))
+
+        return render(request, 'brake/brake_form.html', {
+            'form': form,
+            'calc_title': calc_title,
+        })
 
 
 def brake_form2(request):
     if request.method == "POST":
-        data = json.loads(request.body)
+        try:
+            data = json.loads(request.body)
 
-        v = float(data.get("v") or 10)
-        x = float(data.get("x") or 0)
-        dt = float(data.get("dt") or 0.01)
-        m = float(data.get("mass") or 1000)
-        Gamma = float(data.get("gamma") or 1.0)
-        Delta = float(data.get("delta") or 0.1)
-        Xm = float(data.get("xm") or 0.2)
-        Ym = float(data.get("ym") or 0.1)
-        dh1 = float(data.get("dh1") or 0.006)
-        dh2 = float(data.get("dh2") or 0.006)
-        dm = float(data.get("dm") or 0.05)
-        N = int(data.get("n") or 10)
-        mu = float(data.get("mu") or 1.5)
-        Bz = float(data.get("bz") or 0.2)
-        
-        # Получаем название расчета
-        calc_title = data.get('calc_title', '').strip()
+            v = get_float(data, "v", 10)
+            x = get_float(data, "x", 0)
+            time_value = get_float(data, "time", 0)
 
-        v_new, x_new, overload, acceleration, force_val = runge_kutta_step(
-            v, x, dt, m, Gamma, Delta, Xm, Ym, dh1, dh2, dm, N, mu, Bz
-        )
+            dt = get_float(data, "dt", 0.01)
+            m = get_float(data, "mass", 1000)
 
-        if v_new is not None and x_new is not None and force_val is not None:
-            force_data = {
-                'labels': [v, v_new],
-                'data': [force_val, force_val],
-            }
-            motion_data = {
-                'time': [0, dt],
-                'distance': [x, x_new],
-                'speed': [v, v_new],
-                'overload': [overload, overload],
-            }
+            Gamma = get_float(data, "gamma", 1.0)
+            Delta = get_float(data, "delta", 0.1)
+            Xm = get_float(data, "xm", 0.2)
+            Ym = get_float(data, "ym", 0.1)
+            dh1 = get_float(data, "dh1", 0.006)
+            dh2 = get_float(data, "dh2", 0.006)
+            dm = get_float(data, "dm", 0.05)
+            N = get_int(data, "n", 10)
+            mu = get_float(data, "mu", 1.5)
+            Bz = get_float(data, "bz", 0.2)
 
-            record = save_history(
-                source_page='brake_form2',
-                title=calc_title,
-                source_data={
-                    'v': v,
-                    'x': x,
-                    'dt': dt,
-                    'mass': m,
-                    'gamma': Gamma,
-                    'delta': Delta,
-                    'xm': Xm,
-                    'ym': Ym,
-                    'dh1': dh1,
-                    'dh2': dh2,
-                    'dm': dm,
-                    'n': N,
-                    'mu': mu,
-                    'bz': Bz,
-                },
-                force_data=force_data,
-                motion_data=motion_data,
+            v_new, x_new, overload, acceleration, force_val = runge_kutta_step(
+                v, x, dt, m, Gamma, Delta, Xm, Ym, dh1, dh2, dm, N, mu, Bz
             )
 
             return JsonResponse({
                 "v": v_new,
                 "x": x_new,
+                "time": time_value + dt,
                 "overload": overload,
                 "acceleration": acceleration,
                 "force": force_val,
-                "history_id": record.id,
-                "history_url": reverse("brake:history_detail", args=[record.id]),
             })
 
-        return JsonResponse({"error": "Ошибка вычислений"}, status=400)
+        except Exception as e:
+            return JsonResponse({
+                "error": str(e)
+            }, status=400)
 
-    form = BrakingForm()
-    return render(request, "brake/brake_form2.html", {"form": form})
+    source_data, calc_title = load_source_data_from_history(
+        request.GET.get("load_id"),
+        "brake_form2"
+    )
+
+    form = BrakingForm(initial=source_data_to_form_initial(source_data))
+
+    return render(request, "brake/brake_form2.html", {
+        "form": form,
+        "calc_title": calc_title,
+    })
+
+
+@require_POST
+def save_form2_record(request):
+    try:
+        data = json.loads(request.body)
+    except Exception:
+        return JsonResponse({
+            "success": False,
+            "error": "Некорректный JSON"
+        }, status=400)
+
+    title = data.get("title", "").strip()
+    source_data = data.get("source_data") or {}
+    force_data = data.get("force_data") or {}
+    motion_data = data.get("motion_data") or {}
+
+    if not force_data.get("labels") or not force_data.get("data"):
+        return JsonResponse({
+            "success": False,
+            "error": "Нет данных графика силы торможения"
+        }, status=400)
+
+    if not motion_data.get("time") or not motion_data.get("distance") or not motion_data.get("speed"):
+        return JsonResponse({
+            "success": False,
+            "error": "Нет данных тормозной характеристики"
+        }, status=400)
+
+    record = save_history(
+        source_page="brake_form2",
+        title=title,
+        source_data=source_data,
+        force_data=force_data,
+        motion_data=motion_data,
+    )
+
+    return JsonResponse({
+        "success": True,
+        "history_id": record.id,
+        "history_url": reverse("brake:history_detail", args=[record.id]),
+    })
 
 
 @csrf_exempt
@@ -533,10 +615,6 @@ def history_detail(request, pk):
         'source_data': source_data,
     })
 
-
-
-# Добавьте в конец файла views.py, перед импортами убедитесь, что есть:
-from django.views.decorators.http import require_http_methods
 
 @csrf_exempt
 @require_http_methods(["DELETE"])

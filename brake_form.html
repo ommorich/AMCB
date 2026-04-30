@@ -87,9 +87,11 @@
                              <!-- В форму перед кнопками добавить: -->
                             <div style="margin-bottom: 15px;">
                             <label style="display: block; font-weight: 600; margin-bottom: 5px;">Название расчета:</label>
-                            <input type="text" id="calc-title" name="calc_title" 
-                            placeholder="Введите название расчета" 
+                            <input type="text" id="calc-title" name="calc_title"
+                            value="{{ calc_title|default:'' }}"
+                            placeholder="Введите название расчета"
                             style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
+                            
                     </div>
                             <div>{{ form.mass.label_tag }} {{ form.mass }}</div>
                             <div>{{ form.initial_speed.label_tag }} {{ form.initial_speed }}</div>

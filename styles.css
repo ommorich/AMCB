@@ -1,0 +1,322 @@
+/* ================================ БАЗА ================================ */
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+body {
+	font-family: 'Poppins', sans-serif;
+	background-color: #f4f4f4;
+	color: #333;
+	line-height: 1.4;
+	transition: transform 0.3s ease;
+}
+
+/* ================================ ШАПКА ================================ */
+.header {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 60px;
+	background: linear-gradient(to right, #1a73e8, #e94235);
+	color: white;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 6px 16px;
+	z-index: 1000;
+	box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+	height: 8%;
+}
+
+.logo-container {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	
+}
+
+.logo1 {
+	height: 32px;
+	margin-left: 16px;
+	margin-right: auto;
+}
+
+.logo2 {
+	height: 60px;
+	margin-left: auto;
+	margin-right: 16px;
+}
+
+/* ================================ КНОПКА МЕНЮ ================================ */
+.menu-btn {
+	background: none;
+	border: none;
+	color: white;
+	font-size: 20px;         
+	cursor: pointer;
+	margin-right: 12px;
+	padding: 4px 6px;        /* добавляем чуть отступов */
+	line-height: 1;          
+	height: 32px;            /* ограничивает размер */
+	width: 32px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: transform 0.2s ease;
+	z-index: 1100;
+}
+
+.menu-btn:hover {
+	transform: scale(1.1);
+}
+
+
+/* ================================ БОКОВАЯ ПАНЕЛЬ ================================ */
+.sidebar {
+	position: fixed;
+	top: 7%; /* ниже шапки */
+	left: -240px;
+	width: 240px;
+	height: calc(100% - 60px);
+	background: #1a73e8;
+	color: white;
+	padding: 20px 15px;
+	box-shadow: 4px 0 10px rgba(0, 0, 0, 0.25);
+	transition: left 0.3s ease;
+	z-index: 999;
+}
+
+.sidebar.active {
+	left: 0;
+}
+
+.menu-item a {
+	display: block;
+	color: #fff;
+	text-decoration: none;
+	font-size: 16px;
+	padding: 10px 14px;
+	border-radius: 6px;
+	transition: background 0.2s ease;
+}
+
+.menu-item a:hover {
+	background: rgba(255, 255, 255, 0.2);
+}
+
+/* ================================ КОНТЕНТ ================================ */
+.main-content {
+	margin-top: 70px;
+	padding: 16px;
+	transition: transform 0.3s ease;
+}
+
+body.sidebar-open .main-content {
+	transform: translateX(240px);
+}
+
+/* ================================ КОНТЕЙНЕР ================================ */
+.container {
+	width: 100%;
+	margin: 20px 0;
+	padding: 16px;
+	background-color: white;
+	border-radius: 8px;
+	box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
+}
+
+.form-charts-container {
+	display: flex;
+	justify-content: space-between;
+	gap: 20px;
+	width: 100%;
+	flex-wrap: nowrap;
+	margin-top: 20px;
+}
+
+/* ================================ ФОРМА ================================ */
+.form-row {
+	display: flex;
+	gap: 14px;
+	margin-bottom: 14px;
+}
+
+.form-column {
+	flex: 1;
+	padding: 6px;
+	min-width: 0;
+}
+
+.form-column h3 {
+	font-size: 20px;
+	margin-bottom: 6px;
+	font-weight: 600;
+}
+
+label {
+	display: block;
+	margin-bottom: 4px;
+	font-size: 16px;
+	font-weight: 500;
+}
+
+input[type="text"],
+input[type="number"],
+select {
+	padding: 8px 10px;
+	border: 1px solid #ccc;
+	border-radius: 5px;
+	width: 100%;
+	font-size: 14px;
+	transition: all 0.3s ease;
+}
+
+input:focus,
+select:focus {
+	border-color: #007BFF;
+	outline: none;
+	box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.15);
+}
+
+/* ================================ КНОПКИ ================================ */
+button,
+.submit-button,
+.clear-button,
+.link-button {
+	width: 100%;
+	margin-bottom: 10px;
+	padding: 10px 14px;
+	font-size: 16px;
+	font-weight: 600;
+	border: none;
+	border-radius: 8px;
+	cursor: pointer;
+	box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+	transition: transform 0.2s;
+	font-family: 'Poppins', sans-serif;
+}
+
+.submit-button {
+	background: linear-gradient(45deg, #007bff, #00c6ff);
+	color: white;
+}
+
+.clear-button {
+	background: linear-gradient(45deg, #ff416c, #ff4b2b);
+	color: white;
+}
+
+button:hover,
+.link-button:hover,
+.clear-button:hover,
+.submit-button:hover {
+	transform: translateY(-2px);
+}
+
+/* ================================ ГРАФИКИ ================================ */
+.graphs-block {
+	flex: 0 0 58%;
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	border-radius: 8px;
+	background: #fff;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	padding: 14px;
+}
+
+#force-chart,
+#motion-chart {
+	width: 100%;
+	height: 460px;
+	margin: 10px 0;
+	border-radius: 8px;
+	background-color: #ffffff;
+	box-shadow: 0 3px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* ================================ ТЕКУЩИЕ ДАННЫЕ ================================ */
+.current-data {
+	margin-top: 14px;
+	padding: 12px;
+	background-color: #ffffff;
+	border-radius: 8px;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.current-data h4 {
+	font-size: 18px;
+	font-weight: 600;
+	margin-bottom: 10px;
+}
+
+.data-field {
+	margin-bottom: 10px;
+	padding: 8px 10px;
+	background-color: #fafafa;
+	border-radius: 5px;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.data-field label {
+	font-size: 14px;
+}
+
+.data-field div {
+	font-size: 16px;
+	font-weight: 600;
+	color: #007bff;
+	text-align: center;
+	padding: 4px 6px;
+	border-radius: 5px;
+	background-color: #e6f7ff;
+}
+
+/* ================================ АДАПТИВНОСТЬ ================================ */
+@media (max-width: 1280px) {
+	.form-charts-container {
+		flex-direction: column;
+	}
+
+	.graphs-block {
+		order: 2;
+	}
+
+	.form {
+		order: 1;
+	}
+}
+
+#force-chart, #motion-chart {
+	border-radius: 10px;
+	overflow: hidden;
+}
+
+#force-chart {
+	margin-bottom: 12px;
+}
+
+
+.form-charts-container {
+	display: flex;
+	justify-content: space-between;
+	gap: 20px;
+	width: 100%;
+	flex-wrap: nowrap;
+	align-items: flex-start;
+}
+
+form {
+	flex: 1;
+}
+
+.graphs-block {
+	flex: 1;
+	min-width: 0;
+}
+
+

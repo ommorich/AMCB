@@ -15,6 +15,13 @@ urlpatterns = [
     path('api/calculate/', views.api_calculate_rk4, name='api_calculate_rk4'),
     path('api/upload-csv/', views.api_upload_csv, name='api_upload_csv'),
     
+
+    path(
+        'api/history/save-form2/',
+        views.save_form2_record,
+        name='save_form2_record'
+    ),
+
     # НОВЫЕ API маршруты для удаления
     path('api/history/<int:pk>/delete/', views.api_delete_history, name='api_delete_history'),
     path('api/history/delete-all/', views.api_delete_all_history, name='api_delete_all_history'),

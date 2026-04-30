@@ -47,6 +47,164 @@
 			background-color: #ffffff;
 			box-shadow: 0 3px 5px rgba(0, 0, 0, 0.1);
 		}
+		/* ===== Панель действий расчёта ===== */
+		.calc-actions-panel {
+			display: flex;
+			flex-direction: column;
+			gap: 10px;
+			margin: 18px 0 14px;
+			padding: 12px;
+			border: 1px solid #eef0f4;
+			border-radius: 12px;
+			background: linear-gradient(180deg, #ffffff, #f8faff);
+			box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+		}
+
+		.calc-actions-row {
+			display: flex;
+			gap: 10px;
+			align-items: stretch;
+			flex-wrap: wrap;
+		}
+
+		.calc-split {
+			display: inline-flex;
+			align-items: stretch;
+			border-radius: 10px;
+			overflow: hidden;
+			box-shadow: 0 5px 14px rgba(0, 123, 255, 0.22);
+			flex: 1 1 320px;
+			min-width: 280px;
+		}
+
+		.calc-split button {
+			border: none;
+			font-family: inherit;
+			font-weight: 600;
+			cursor: pointer;
+			transition: transform 0.18s ease, filter 0.18s ease, opacity 0.18s ease;
+		}
+
+		.calc-split button:active {
+			transform: translateY(1px);
+		}
+
+		.calc-split-main {
+			flex: 1;
+			padding: 12px 18px;
+			color: #fff;
+			background: linear-gradient(45deg, #007bff, #00c6ff);
+			font-size: 15px;
+		}
+
+		.calc-split-next {
+			flex: 1.15;
+			padding: 12px 18px;
+			color: #fff;
+			background: linear-gradient(45deg, #1f8fff, #0069d9);
+			font-size: 15px;
+			border-left: 1px solid rgba(255, 255, 255, 0.35) !important;
+		}
+
+		.calc-split-main:hover,
+		.calc-split-next:hover {
+			filter: brightness(1.05);
+		}
+
+		.calc-save-btn {
+			flex: 0 1 210px;
+			min-width: 190px;
+			border: none;
+			border-radius: 10px;
+			padding: 12px 18px;
+			font-family: inherit;
+			font-size: 15px;
+			font-weight: 600;
+			color: #fff;
+			cursor: pointer;
+			background: linear-gradient(45deg, #28a745, #20c997);
+			box-shadow: 0 5px 14px rgba(40, 167, 69, 0.24);
+			transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+		}
+
+		.calc-save-btn:hover:not(:disabled) {
+			transform: translateY(-2px);
+			box-shadow: 0 7px 18px rgba(40, 167, 69, 0.32);
+		}
+
+		.calc-save-btn:disabled {
+			opacity: 0.48;
+			cursor: not-allowed;
+			box-shadow: none;
+		}
+
+		.calc-secondary-row {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 10px;
+		}
+
+		.calc-secondary-btn {
+			border: 1px solid #dce3ed;
+			border-radius: 10px;
+			padding: 10px 14px;
+			font-family: inherit;
+			font-size: 14px;
+			font-weight: 600;
+			cursor: pointer;
+			background: #fff;
+			color: #333;
+			transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+		}
+
+		.calc-secondary-btn:hover {
+			transform: translateY(-1px);
+			border-color: #b8c7d9;
+			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+		}
+
+		.calc-clear-btn {
+			color: #ff4b2b;
+			border-color: rgba(255, 75, 43, 0.32);
+		}
+
+		.calc-clear-btn:hover {
+			border-color: rgba(255, 75, 43, 0.55);
+			box-shadow: 0 4px 12px rgba(255, 75, 43, 0.12);
+		}
+
+		.calc-status {
+			min-height: 18px;
+			font-size: 13px;
+			padding-left: 2px;
+		}
+
+		@media (max-width: 700px) {
+			.calc-actions-row {
+				flex-direction: column;
+			}
+
+			.calc-split {
+				width: 100%;
+				min-width: 0;
+				flex-direction: column;
+				border-radius: 10px;
+			}
+
+			.calc-split-next {
+				border-left: none !important;
+				border-top: 1px solid rgba(255, 255, 255, 0.35) !important;
+			}
+
+			.calc-save-btn {
+				width: 100%;
+				flex: auto;
+			}
+
+			.calc-secondary-row {
+				grid-template-columns: 1fr;
+			}
+		}
 	</style>
 </head>
 
@@ -69,6 +227,7 @@
 			<li class="menu-item"><a href="{% url 'brake:brake_view' %}">1 — Непрерывное интегрирование</a></li>
 			<li class="menu-item"><a href="{% url 'brake:brake_form2' %}">2 — Пошаговое интегрирование</a></li>
 			<li class="menu-item"><a href="{% url 'brake:brake_form3' %}">3 — Импорт из файла</a></li>
+			<li class="menu-item"><a href="{% url 'brake:history_page' %}">4 — История расчётов</a></li>
 		</ul>
 	</div>
 
@@ -77,34 +236,41 @@
 			<div class="form-charts-container">
 				<form id="brake-form2">
 					{% csrf_token %}
+
 					<div class="form-row">
 						<div class="form-column">
 							<h3>Основные параметры</h3>
-							<!-- После заголовка "Основные параметры" добавить: -->
+
 							<div style="margin-bottom: 15px;">
 								<label style="display: block; font-weight: 600; margin-bottom: 5px;">Название расчета:</label>
-								<input type="text" id="calc-title" name="calc_title" 
-									placeholder="Введите название расчета" 
-									style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
+								<input type="text" id="calc-title" name="calc_title"
+								value="{{ calc_title|default:'' }}"
+								placeholder="Введите название расчета"
+								style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
 							</div>
+
 							<div>{{ form.mass.label_tag }} {{ form.mass }}</div>
 							<div>{{ form.initial_speed.label_tag }} {{ form.initial_speed }}</div>
 							<div>{{ form.dt.label_tag }} {{ form.dt }}</div>
 
 							<div class="current-data">
 								<h4>Текущие данные</h4>
+
 								<div class="data-field">
 									<label><strong>Время (с):</strong></label>
 									<div id="time-value">0</div>
 								</div>
+
 								<div class="data-field">
 									<label><strong>Скорость (м/с):</strong></label>
 									<div id="speed-value">0</div>
 								</div>
+
 								<div class="data-field">
 									<label><strong>Ускорение (м/с²):</strong></label>
 									<div id="acceleration-value">0</div>
 								</div>
+
 								<div class="data-field">
 									<label><strong>Путь (м):</strong></label>
 									<div id="distance-value">0</div>
@@ -127,36 +293,55 @@
 						</div>
 					</div>
 
-					<!-- Сплит-кнопка -->
-					<div class="split-button" style="display:flex; gap:10px; margin-bottom:12px;">
-						<button type="button" id="btn-kgc" class="submit-button">КГС</button>
-						<button type="button" id="btn-th" class="submit-button" disabled>ТХ</button>
-					</div>
+					<div class="calc-actions-panel">
+						<div class="calc-actions-row">
+							<div class="calc-split">
+								<button type="button" id="btn-kgc" class="calc-split-main">
+									Построить шаг
+								</button>
 
-					<button type="button" id="fill-btn" class="submit-button">Подставить шаблонные данные</button>
-					<button type="button" id="clear-button" class="clear-button">Очистить</button>
+								<button type="button" id="btn-th" class="calc-split-next">
+									Достроить до конца
+								</button>
+							</div>
+
+							<button type="button" id="save-calc-btn" class="calc-save-btn" disabled>
+								Сохранить расчёт
+							</button>
+						</div>
+
+						<div id="save-status" class="calc-status"></div>
+
+						<div class="calc-secondary-row">
+							<button type="button" id="fill-btn" class="calc-secondary-btn">
+								Подставить шаблонные данные
+							</button>
+
+							<button type="button" id="clear-button" class="calc-secondary-btn calc-clear-btn">
+								Очистить форму и графики
+							</button>
+						</div>
+					</div>
 				</form>
 
 				<div class="graphs-block">
-					<!-- График силы торможения с кнопками -->
 					<div>
 						<div class="chart-header">
 							<h3>График силы торможения</h3>
 							<div class="chart-buttons">
-								<button class="submit-button" id="dlForcePng">PNG</button>
-								<button class="submit-button" id="dlForceCsv">CSV</button>
+								<button type="button" class="submit-button" id="dlForcePng">PNG</button>
+								<button type="button" class="submit-button" id="dlForceCsv">CSV</button>
 							</div>
 						</div>
 						<div id="force-chart"></div>
 					</div>
 					
-					<!-- График движения с кнопками -->
 					<div>
 						<div class="chart-header">
 							<h3>Тормозная характеристика</h3>
 							<div class="chart-buttons">
-								<button class="submit-button" id="dlMotionPng">PNG</button>
-								<button class="submit-button" id="dlMotionCsv">CSV</button>
+								<button type="button" class="submit-button" id="dlMotionPng">PNG</button>
+								<button type="button" class="submit-button" id="dlMotionCsv">CSV</button>
 							</div>
 						</div>
 						<div id="motion-chart"></div>
@@ -167,237 +352,1085 @@
 	</div>
 
 	<script>
-		document.addEventListener('DOMContentLoaded', function () {
+	document.addEventListener('DOMContentLoaded', function () {
 
-			let currentState = {
-				v: parseFloat(document.querySelector('input[name="initial_speed"]').value),
+		const form = document.getElementById('brake-form2');
+
+		const btnBuild = document.getElementById('btn-kgc');
+		const btnComplete = document.getElementById('btn-th');
+		const fillBtn = document.getElementById('fill-btn');
+		const clearBtn = document.getElementById('clear-button');
+		const saveCalcBtn = document.getElementById('save-calc-btn');
+		const saveStatus = document.getElementById('save-status');
+
+		const ACC_STOP = 0.01;
+		const MAX_STEPS = 200000;
+
+		const RENDER_EVERY = 100;
+		const UI_EVERY = 50;
+
+		let isRunning = false;
+		let stopRequested = false;
+		let runId = 0;
+		let hasUnsavedChanges = false;
+
+		let forceData = {
+			labels: [],
+			data: []
+		};
+
+		let motionData = {
+			time: [],
+			distance: [],
+			speed: [],
+			overload: []
+		};
+
+		let pendingForceX = [];
+		let pendingForceY = [];
+
+		let pendingMotionT = [];
+		let pendingMotionDistance = [];
+		let pendingMotionSpeed = [];
+		let pendingMotionOverload = [];
+
+		const plotConfig = {
+			responsive: true
+		};
+
+		function parseNumber(value) {
+			if (value === null || value === undefined) return NaN;
+			if (typeof value === 'number') return value;
+
+			const text = String(value).replace(',', '.').trim();
+
+			if (text === '') return NaN;
+
+			return parseFloat(text);
+		}
+
+		function readNumber(name) {
+			const el = form.querySelector(`[name="${name}"]`);
+			if (!el) return NaN;
+
+			return parseNumber(el.value);
+		}
+
+		function formatNumber(value, digits = 2) {
+			const number = parseNumber(value);
+
+			if (!Number.isFinite(number)) return '0';
+
+			return number.toFixed(digits);
+		}
+
+		function sameNumber(a, b, eps = 1e-12) {
+			const n1 = parseNumber(a);
+			const n2 = parseNumber(b);
+
+			if (!Number.isFinite(n1) || !Number.isFinite(n2)) {
+				return false;
+			}
+
+			return Math.abs(n1 - n2) <= eps;
+		}
+
+		function sleep(ms) {
+			return new Promise(resolve => setTimeout(resolve, ms));
+		}
+
+		function getCsrfToken() {
+			const input = document.querySelector('[name="csrfmiddlewaretoken"]');
+
+			if (input && input.value) {
+				return input.value;
+			}
+
+			return '{{ csrf_token }}';
+		}
+
+		let currentState = {
+			v: readNumber('initial_speed'),
+			x: 0,
+			time: 0
+		};
+
+		if (!Number.isFinite(currentState.v)) {
+			currentState.v = 0;
+		}
+
+		function getForceLayout() {
+			return {
+				title: {
+					text: 'Сила торможения (кгс)',
+					font: {
+						size: 22
+					}
+				},
+				margin: {
+					t: 60,
+					r: 30,
+					b: 60,
+					l: 70
+				},
+				autosize: true,
+				height: 400,
+				xaxis: {
+					title: {
+						text: 'Скорость (м/с)',
+						font: {
+							size: 16
+						}
+					},
+					tickfont: {
+						size: 13
+					}
+				},
+				yaxis: {
+					title: {
+						text: 'Сила торможения (кгс)',
+						font: {
+							size: 16
+						}
+					},
+					tickfont: {
+						size: 13
+					}
+				},
+				legend: {
+					font: {
+						size: 13
+					}
+				},
+				hovermode: 'x unified',
+				hoverlabel: {
+					bgcolor: 'white',
+					font: {
+						size: 14,
+						color: 'black'
+					}
+				}
+			};
+		}
+
+		function getMotionLayout() {
+			return {
+				title: {
+					text: 'Тормозная характеристика',
+					font: {
+						size: 22
+					}
+				},
+				margin: {
+					t: 60,
+					r: 30,
+					b: 60,
+					l: 70
+				},
+				autosize: true,
+				height: 400,
+				xaxis: {
+					title: {
+						text: 'Время (с)',
+						font: {
+							size: 16
+						}
+					},
+					tickfont: {
+						size: 13
+					}
+				},
+				yaxis: {
+					title: {
+						text: 'Путь (м) / Скорость (м/с) / Перегрузка (g)',
+						font: {
+							size: 16
+						}
+					},
+					tickfont: {
+						size: 13
+					}
+				},
+				legend: {
+					font: {
+						size: 13
+					}
+				},
+				hovermode: 'x unified',
+				hoverlabel: {
+					bgcolor: 'white',
+					font: {
+						size: 14,
+						color: 'black'
+					}
+				}
+			};
+		}
+
+		function initCharts() {
+			Plotly.newPlot('force-chart', [
+				{
+					x: [],
+					y: [],
+					type: 'scatter',
+					mode: 'lines+markers',
+					name: 'Сила торможения',
+					line: {
+						color: '#ff7f0e',
+						width: 3
+					},
+					marker: {
+						color: '#ff7f0e',
+						size: 6
+					},
+					hovertemplate: 'Скорость: %{x:.3f} м/с<br>Сила: %{y:.3f} кгс<extra></extra>'
+				}
+			], getForceLayout(), plotConfig);
+
+			Plotly.newPlot('motion-chart', [
+				{
+					x: [],
+					y: [],
+					type: 'scatter',
+					mode: 'lines+markers',
+					name: 'Путь (м)',
+					line: {
+						color: '#1f77b4',
+						width: 3
+					},
+					marker: {
+						color: '#1f77b4',
+						size: 5
+					},
+					hovertemplate: 'Время: %{x:.3f} с<br>Путь: %{y:.3f} м<extra></extra>'
+				},
+				{
+					x: [],
+					y: [],
+					type: 'scatter',
+					mode: 'lines+markers',
+					name: 'Скорость (м/с)',
+					line: {
+						color: '#2ca02c',
+						width: 3
+					},
+					marker: {
+						color: '#2ca02c',
+						size: 5
+					},
+					hovertemplate: 'Время: %{x:.3f} с<br>Скорость: %{y:.3f} м/с<extra></extra>'
+				},
+				{
+					x: [],
+					y: [],
+					type: 'scatter',
+					mode: 'lines+markers',
+					name: 'Перегрузка (g)',
+					line: {
+						color: '#d62728',
+						width: 3
+					},
+					marker: {
+						color: '#d62728',
+						size: 5
+					},
+					hovertemplate: 'Время: %{x:.3f} с<br>Перегрузка: %{y:.3f} g<extra></extra>'
+				}
+			], getMotionLayout(), plotConfig);
+
+			setTimeout(resizeCharts, 100);
+		}
+
+		function resizeCharts() {
+			const forceChart = document.getElementById('force-chart');
+			const motionChart = document.getElementById('motion-chart');
+
+			if (forceChart && forceChart.data) {
+				Plotly.Plots.resize(forceChart);
+			}
+
+			if (motionChart && motionChart.data) {
+				Plotly.Plots.resize(motionChart);
+			}
+		}
+
+		function updateChartTitles() {
+			const lastIndex = motionData.time.length - 1;
+
+			if (lastIndex < 0) return;
+
+			const finalDistance = formatNumber(motionData.distance[lastIndex], 2);
+			const finalSpeed = formatNumber(motionData.speed[lastIndex], 2);
+			const finalOverload = formatNumber(motionData.overload[lastIndex], 2);
+
+			Plotly.relayout('motion-chart', {
+				'title.text': `Тормозная характеристика (S=${finalDistance} м, V=${finalSpeed} м/с, g=${finalOverload})`
+			});
+
+			Plotly.restyle('motion-chart', {
+				name: [
+					`Путь: ${finalDistance} м`,
+					`Скорость: ${finalSpeed} м/с`,
+					`Перегрузка: ${finalOverload} g`
+				]
+			}, [0, 1, 2]);
+		}
+
+		function flushPendingPoints(updateTitles = false) {
+			if (pendingForceX.length > 0) {
+				Plotly.extendTraces('force-chart', {
+					x: [pendingForceX.slice()],
+					y: [pendingForceY.slice()]
+				}, [0]);
+
+				pendingForceX = [];
+				pendingForceY = [];
+			}
+
+			if (pendingMotionT.length > 0) {
+				Plotly.extendTraces('motion-chart', {
+					x: [
+						pendingMotionT.slice(),
+						pendingMotionT.slice(),
+						pendingMotionT.slice()
+					],
+					y: [
+						pendingMotionDistance.slice(),
+						pendingMotionSpeed.slice(),
+						pendingMotionOverload.slice()
+					]
+				}, [0, 1, 2]);
+
+				pendingMotionT = [];
+				pendingMotionDistance = [];
+				pendingMotionSpeed = [];
+				pendingMotionOverload = [];
+			}
+
+			if (updateTitles) {
+				updateChartTitles();
+			}
+		}
+
+		function updateCurrentInfo(accelerationValue) {
+			document.getElementById('time-value').innerText = formatNumber(currentState.time, 3);
+			document.getElementById('speed-value').innerText = formatNumber(currentState.v, 3);
+			document.getElementById('acceleration-value').innerText = formatNumber(accelerationValue, 5);
+			document.getElementById('distance-value').innerText = formatNumber(currentState.x, 3);
+		}
+
+		function updateSaveButton() {
+			if (!saveCalcBtn) return;
+
+			const hasForceData =
+				forceData.labels.length > 0 &&
+				forceData.data.length > 0;
+
+			const hasMotionData =
+				motionData.time.length > 0 &&
+				motionData.distance.length > 0 &&
+				motionData.speed.length > 0;
+
+			saveCalcBtn.disabled = !(
+				hasForceData &&
+				hasMotionData &&
+				hasUnsavedChanges &&
+				!isRunning
+			);
+		}
+
+		function markUnsaved() {
+			hasUnsavedChanges = true;
+
+			if (saveStatus) {
+				saveStatus.innerHTML = '';
+			}
+
+			updateSaveButton();
+		}
+
+		function collectForm2SourceData() {
+			return {
+				calc_title: document.getElementById('calc-title')?.value.trim() || '',
+
+				mass: readNumber('mass'),
+				initial_speed: readNumber('initial_speed'),
+				dt: readNumber('dt'),
+
+				gamma: readNumber('gamma'),
+				delta: readNumber('delta'),
+				xm: readNumber('xm'),
+				ym: readNumber('ym'),
+				dh1: readNumber('dh1'),
+				dh2: readNumber('dh2'),
+				dm: readNumber('dm'),
+				n: readNumber('n'),
+				mu: readNumber('mu'),
+				bz: readNumber('bz'),
+
+				final_time: currentState.time,
+				final_speed: currentState.v,
+				final_distance: currentState.x
+			};
+		}
+
+		async function saveCurrentCalculation() {
+			if (forceData.labels.length === 0 || motionData.time.length === 0) {
+				alert('Сначала постройте расчёт.');
+				return;
+			}
+
+			const calcTitle =
+				document.getElementById('calc-title')?.value.trim() ||
+				'Пошаговое интегрирование';
+
+			const payload = {
+				title: calcTitle,
+				source_data: collectForm2SourceData(),
+				force_data: {
+					labels: forceData.labels,
+					data: forceData.data
+				},
+				motion_data: {
+					time: motionData.time,
+					distance: motionData.distance,
+					speed: motionData.speed,
+					overload: motionData.overload
+				}
+			};
+
+			saveCalcBtn.disabled = true;
+			saveStatus.innerHTML = '<span style="color:#666;">Сохранение...</span>';
+
+			try {
+				const response = await fetch("{% url 'brake:save_form2_record' %}", {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'X-CSRFToken': getCsrfToken()
+					},
+					body: JSON.stringify(payload)
+				});
+
+				const text = await response.text();
+				let result = {};
+
+				try {
+					result = JSON.parse(text);
+				} catch (e) {
+					console.error(text);
+					throw new Error('Сервер вернул не JSON.');
+				}
+
+				if (!response.ok) {
+					throw new Error(result.error || 'Ошибка сервера при сохранении.');
+				}
+
+				if (result.success) {
+					hasUnsavedChanges = false;
+
+					const historyId = result.history_id || result.id;
+					const historyUrl = result.history_url || result.detail_url || '#';
+
+					saveStatus.innerHTML = `
+						<span style="color:#28a745;">✓ Расчёт сохранён #${historyId}</span>
+						<a href="${historyUrl}" style="margin-left:8px; color:#007bff; font-weight:600;">
+							Открыть
+						</a>
+					`;
+
+					updateSaveButton();
+				} else {
+					throw new Error(result.error || 'Не удалось сохранить.');
+				}
+			} catch (error) {
+				console.error(error);
+
+				saveStatus.innerHTML = `
+					<span style="color:#ff4b2b;">Ошибка: ${error.message || 'не удалось сохранить'}</span>
+				`;
+
+				updateSaveButton();
+			}
+		}
+
+		function preparePayload() {
+			const numericFields = [
+				'mass',
+				'initial_speed',
+				'dt',
+				'gamma',
+				'delta',
+				'xm',
+				'ym',
+				'dh1',
+				'dh2',
+				'dm',
+				'n',
+				'mu',
+				'bz'
+			];
+
+			if (forceData.labels.length === 0 && motionData.time.length === 0) {
+				const initialSpeed = readNumber('initial_speed');
+
+				if (Number.isFinite(initialSpeed)) {
+					currentState.v = initialSpeed;
+				}
+
+				currentState.x = 0;
+				currentState.time = 0;
+			}
+
+			const payload = {
+				v: currentState.v,
+				x: currentState.x,
+				time: currentState.time,
+				calc_title: document.getElementById('calc-title').value || ''
+			};
+
+			for (const field of numericFields) {
+				payload[field] = readNumber(field);
+			}
+
+			return payload;
+		}
+
+		function validatePayload(payload) {
+			const requiredFields = [
+				'mass',
+				'initial_speed',
+				'dt',
+				'gamma',
+				'delta',
+				'xm',
+				'ym',
+				'dh1',
+				'dh2',
+				'dm',
+				'n',
+				'mu',
+				'bz'
+			];
+
+			for (const field of requiredFields) {
+				if (!Number.isFinite(payload[field])) {
+					alert('Пожалуйста, заполните все числовые поля формы.');
+					return false;
+				}
+			}
+
+			if (!Number.isFinite(payload.v)) {
+				payload.v = payload.initial_speed;
+				currentState.v = payload.initial_speed;
+			}
+
+			if (!Number.isFinite(payload.x)) {
+				payload.x = 0;
+				currentState.x = 0;
+			}
+
+			if (!Number.isFinite(payload.time)) {
+				payload.time = 0;
+				currentState.time = 0;
+			}
+
+			return true;
+		}
+
+		async function requestOneStep(myRunId) {
+			const payload = preparePayload();
+
+			if (!validatePayload(payload)) {
+				return null;
+			}
+
+			const response = await fetch("{% url 'brake:brake_form2' %}", {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-CSRFToken': getCsrfToken()
+				},
+				body: JSON.stringify(payload)
+			});
+
+			if (myRunId !== runId) {
+				return null;
+			}
+
+			const text = await response.text();
+
+			if (!response.ok) {
+				console.error(text);
+				throw new Error('Ошибка сервера при расчёте.');
+			}
+
+			let step;
+
+			try {
+				step = JSON.parse(text);
+			} catch (error) {
+				console.error(text);
+				throw new Error('Сервер вернул не JSON. Проверь view brake_form2.');
+			}
+
+			if (step.error) {
+				throw new Error(step.error);
+			}
+
+			if (step.force === undefined) {
+				console.error(step);
+				throw new Error('В ответе сервера нет поля force.');
+			}
+
+			return step;
+		}
+
+		function applyStep(step, updateUiNow = true) {
+			const dt = readNumber('dt');
+
+			const newV = parseNumber(step.v);
+			const newX = parseNumber(step.x);
+			const newTime = parseNumber(step.time);
+
+			if (Number.isFinite(newV)) {
+				currentState.v = newV;
+			}
+
+			if (Number.isFinite(newX)) {
+				currentState.x = newX;
+			}
+
+			if (Number.isFinite(newTime)) {
+				currentState.time = newTime;
+			} else if (Number.isFinite(dt)) {
+				currentState.time += dt;
+			}
+
+			const force = parseNumber(step.force);
+			const acceleration = parseNumber(step.acceleration);
+			const overload = parseNumber(step.overload);
+
+			const safeForce = Number.isFinite(force) ? force : 0;
+			const safeAcceleration = Number.isFinite(acceleration) ? acceleration : 0;
+			const safeOverload = Number.isFinite(overload) ? overload : 0;
+
+			let forceChanged = true;
+			let motionChanged = true;
+
+			const lastForceIndex = forceData.data.length - 1;
+
+			if (lastForceIndex >= 0) {
+				forceChanged = !(
+					sameNumber(currentState.v, forceData.labels[lastForceIndex]) &&
+					sameNumber(safeForce, forceData.data[lastForceIndex])
+				);
+			}
+
+			const lastMotionIndex = motionData.time.length - 1;
+
+			if (lastMotionIndex >= 0) {
+				motionChanged = !(
+					sameNumber(currentState.time, motionData.time[lastMotionIndex]) &&
+					sameNumber(currentState.x, motionData.distance[lastMotionIndex]) &&
+					sameNumber(currentState.v, motionData.speed[lastMotionIndex]) &&
+					sameNumber(safeOverload, motionData.overload[lastMotionIndex])
+				);
+			}
+
+			if (forceChanged) {
+				forceData.labels.push(currentState.v);
+				forceData.data.push(safeForce);
+
+				pendingForceX.push(currentState.v);
+				pendingForceY.push(safeForce);
+			}
+
+			if (motionChanged) {
+				motionData.time.push(currentState.time);
+				motionData.distance.push(currentState.x);
+				motionData.speed.push(currentState.v);
+				motionData.overload.push(safeOverload);
+
+				pendingMotionT.push(currentState.time);
+				pendingMotionDistance.push(currentState.x);
+				pendingMotionSpeed.push(currentState.v);
+				pendingMotionOverload.push(safeOverload);
+			}
+
+			if (forceChanged || motionChanged) {
+				markUnsaved();
+			}
+
+			if (updateUiNow) {
+				updateCurrentInfo(safeAcceleration);
+			}
+
+			return {
+				changed: forceChanged || motionChanged,
+				acceleration: safeAcceleration
+			};
+		}
+
+		async function buildOneIteration() {
+			if (isRunning) return;
+
+			const myRunId = ++runId;
+
+			isRunning = true;
+			stopRequested = false;
+
+			btnBuild.disabled = true;
+			btnComplete.disabled = true;
+			updateSaveButton();
+
+			try {
+				const step = await requestOneStep(myRunId);
+
+				if (!step || myRunId !== runId) {
+					return;
+				}
+
+				const result = applyStep(step, true);
+
+				if (result.changed) {
+					flushPendingPoints(true);
+				}
+			} catch (error) {
+				console.error(error);
+				alert(error.message || 'Ошибка при построении.');
+			} finally {
+				if (myRunId === runId) {
+					isRunning = false;
+
+					btnBuild.disabled = false;
+					btnComplete.disabled = false;
+					btnComplete.innerText = 'Достроить до конца';
+
+					updateSaveButton();
+				}
+			}
+		}
+
+		async function completeToEnd() {
+			if (isRunning) {
+				stopRequested = true;
+				btnComplete.innerText = 'Останавливаю...';
+				return;
+			}
+
+			const myRunId = ++runId;
+
+			isRunning = true;
+			stopRequested = false;
+
+			btnBuild.disabled = true;
+			btnComplete.disabled = false;
+			btnComplete.innerText = 'Остановить';
+			updateSaveButton();
+
+			let steps = 0;
+			let lastAcceleration = 0;
+
+			try {
+				while (steps < MAX_STEPS && !stopRequested) {
+					const step = await requestOneStep(myRunId);
+
+					if (!step || myRunId !== runId) {
+						break;
+					}
+
+					steps += 1;
+
+					const updateUiNow = steps % UI_EVERY === 0;
+					const result = applyStep(step, updateUiNow);
+
+					lastAcceleration = result.acceleration;
+
+					if (steps % RENDER_EVERY === 0) {
+						flushPendingPoints(true);
+						await sleep(0);
+					}
+
+					if (Math.abs(result.acceleration) <= ACC_STOP) {
+						break;
+					}
+
+					if (!result.changed) {
+						console.warn('Расчёт остановлен: данные перестали изменяться.');
+						break;
+					}
+				}
+
+				flushPendingPoints(true);
+				updateCurrentInfo(lastAcceleration);
+
+				if (steps >= MAX_STEPS) {
+					alert('Расчёт остановлен: достигнут лимит итераций.');
+				}
+			} catch (error) {
+				console.error(error);
+				alert(error.message || 'Ошибка при достраивании.');
+			} finally {
+				if (myRunId === runId) {
+					isRunning = false;
+					stopRequested = false;
+
+					btnBuild.disabled = false;
+					btnComplete.disabled = false;
+					btnComplete.innerText = 'Достроить до конца';
+
+					updateSaveButton();
+				}
+			}
+		}
+
+		function downloadPlotlyPng(chartId, filename) {
+			Plotly.downloadImage(chartId, {
+				format: 'png',
+				width: 1200,
+				height: 600,
+				filename: filename
+			});
+		}
+
+		function downloadCsv(data, filename, headers, columns) {
+			let csv = headers.join(',') + '\n';
+
+			for (let i = 0; i < data[columns[0]].length; i++) {
+				const row = columns.map(col => data[col][i]).join(',');
+				csv += row + '\n';
+			}
+
+			const blob = new Blob(['\ufeff' + csv], {
+				type: 'text/csv;charset=utf-8;'
+			});
+
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+
+			a.href = url;
+			a.download = filename;
+			a.click();
+
+			URL.revokeObjectURL(url);
+		}
+
+		function resetCalculation() {
+			runId += 1;
+			stopRequested = true;
+			isRunning = false;
+			hasUnsavedChanges = false;
+
+			forceData = {
+				labels: [],
+				data: []
+			};
+
+			motionData = {
+				time: [],
+				distance: [],
+				speed: [],
+				overload: []
+			};
+
+			pendingForceX = [];
+			pendingForceY = [];
+
+			pendingMotionT = [];
+			pendingMotionDistance = [];
+			pendingMotionSpeed = [];
+			pendingMotionOverload = [];
+
+			const initialSpeed = readNumber('initial_speed');
+
+			currentState = {
+				v: Number.isFinite(initialSpeed) ? initialSpeed : 0,
 				x: 0,
 				time: 0
 			};
-			let forceData = { labels: [], data: [] };
-			let motionData = { time: [], distance: [], speed: [], overload: [] };
 
-			const plotLayout = { 
-				margin: { t: 40, r: 30, b: 50, l: 60 },
-				autosize: true,
-				width: 850,
-				height: 420,
-			};
+			updateCurrentInfo(0);
 
-			const plotConfig = { responsive: true };
+			Plotly.react('force-chart', [
+				{
+					x: [],
+					y: [],
+					type: 'scatter',
+					mode: 'lines+markers',
+					name: 'Сила торможения',
+					line: {
+						color: '#ff7f0e',
+						width: 3
+					},
+					marker: {
+						color: '#ff7f0e',
+						size: 6
+					},
+					hovertemplate: 'Скорость: %{x:.3f} м/с<br>Сила: %{y:.3f} кгс<extra></extra>'
+				}
+			], getForceLayout(), plotConfig);
 
-			// ===== Инициализация графиков =====
-			Plotly.newPlot('force-chart', [{
-				x: [], y: [], type: 'scatter', mode: 'lines+markers', name: 'Сила торможения'
-			}], plotLayout, plotConfig);
+			Plotly.react('motion-chart', [
+				{
+					x: [],
+					y: [],
+					type: 'scatter',
+					mode: 'lines+markers',
+					name: 'Путь (м)',
+					line: {
+						color: '#1f77b4',
+						width: 3
+					},
+					marker: {
+						color: '#1f77b4',
+						size: 5
+					},
+					hovertemplate: 'Время: %{x:.3f} с<br>Путь: %{y:.3f} м<extra></extra>'
+				},
+				{
+					x: [],
+					y: [],
+					type: 'scatter',
+					mode: 'lines+markers',
+					name: 'Скорость (м/с)',
+					line: {
+						color: '#2ca02c',
+						width: 3
+					},
+					marker: {
+						color: '#2ca02c',
+						size: 5
+					},
+					hovertemplate: 'Время: %{x:.3f} с<br>Скорость: %{y:.3f} м/с<extra></extra>'
+				},
+				{
+					x: [],
+					y: [],
+					type: 'scatter',
+					mode: 'lines+markers',
+					name: 'Перегрузка (g)',
+					line: {
+						color: '#d62728',
+						width: 3
+					},
+					marker: {
+						color: '#d62728',
+						size: 5
+					},
+					hovertemplate: 'Время: %{x:.3f} с<br>Перегрузка: %{y:.3f} g<extra></extra>'
+				}
+			], getMotionLayout(), plotConfig);
 
-			Plotly.newPlot('motion-chart', [
-				{x: [], y: [], type:'scatter', mode:'lines', name:'Путь (м)'},
-				{x: [], y: [], type:'scatter', mode:'lines', name:'Скорость (м/с)'},
-				{x: [], y: [], type:'scatter', mode:'lines', name:'Перегрузка (g)'}
-			], plotLayout, plotConfig);
-			
+			btnBuild.disabled = false;
+			btnComplete.disabled = false;
+			btnComplete.innerText = 'Достроить до конца';
 
-			// ===== Функции скачивания =====
-			function downloadPlotlyPng(chartId, filename) {
-				Plotly.downloadImage(chartId, {
-					format: 'png',
-					width: 1200,
-					height: 600,
-					filename: filename
-				});
+			if (saveStatus) {
+				saveStatus.innerHTML = '';
 			}
 
-			function downloadCsv(data, filename, headers, columns) {
-				let csv = headers.join(',') + '\n';
-				for (let i = 0; i < data[columns[0]].length; i++) {
-					const row = columns.map(col => data[col][i]).join(',');
-					csv += row + '\n';
-				}
-				
-				const blob = new Blob([csv], { type: 'text/csv' });
-				const url = URL.createObjectURL(blob);
-				const a = document.createElement('a');
-				a.href = url;
-				a.download = filename;
-				a.click();
-				URL.revokeObjectURL(url);
-			}
+			updateSaveButton();
 
-			// ===== Кнопки скачивания для графика силы =====
-			document.getElementById('dlForcePng').addEventListener('click', function() {
-				downloadPlotlyPng('force-chart', 'force_chart');
-			});
+			setTimeout(resizeCharts, 100);
+		}
 
-			document.getElementById('dlForceCsv').addEventListener('click', function() {
-				if (forceData.labels.length > 0) {
-					const exportData = {
-						labels: forceData.labels,
-						data: forceData.data
-					};
-					downloadCsv(exportData, 'force_data.csv', ['Скорость (м/с)', 'Сила (кгс)'], ['labels', 'data']);
-				} else {
-					alert('Нет данных для скачивания');
-				}
-			});
+		btnBuild.addEventListener('click', buildOneIteration);
+		btnComplete.addEventListener('click', completeToEnd);
 
-			// ===== Кнопки скачивания для графика движения =====
-			document.getElementById('dlMotionPng').addEventListener('click', function() {
-				downloadPlotlyPng('motion-chart', 'motion_chart');
-			});
+		if (saveCalcBtn) {
+			saveCalcBtn.addEventListener('click', saveCurrentCalculation);
+		}
 
-			document.getElementById('dlMotionCsv').addEventListener('click', function() {
-				if (motionData.time.length > 0) {
-					downloadCsv(motionData, 'motion_data.csv', 
-						['Время (с)', 'Путь (м)', 'Скорость (м/с)', 'Перегрузка (g)'], 
-						['time', 'distance', 'speed', 'overload']);
-				} else {
-					alert('Нет данных для скачивания');
-				}
-			});
-
-			// ===== Обработчик КГС =====
-			const btnKgc = document.getElementById('btn-kgc');
-			const btnTh  = document.getElementById('btn-th');
-
-			btnKgc.addEventListener('click', function () {
-				let formData = new FormData(document.querySelector('#brake-form2'));
-				let data = { ...currentState };
-				formData.forEach((value, key) => data[key] = parseFloat(value));
-
-				if (!data.mass || !data.initial_speed || !data.dt || !data.gamma || !data.delta || !data.xm || !data.ym || !data.dh1 || !data.dh2 || !data.dm || !data.n || !data.mu || !data.bz) {
-					alert("Пожалуйста, заполните все поля формы.");
-					return;
-				}
-
-				fetch("{% url 'brake:brake_form2' %}", {
-					method: 'POST',
-					headers: {'Content-Type': 'application/json','X-CSRFToken': '{{ csrf_token }}'},
-					body: JSON.stringify(data)
-				})
-				.then(resp => resp.json())
-				.then(step => {
-					if (step.force !== undefined) {
-						currentState.v = step.v ?? currentState.v;
-						currentState.x = step.x ?? currentState.x;
-						currentState.time += parseFloat(document.querySelector('input[name="dt"]').value);
-
-						forceData.labels.push(currentState.v);
-						forceData.data.push(step.force);
-
-						motionData.time.push(currentState.time);
-						motionData.distance.push(currentState.x);
-						motionData.speed.push(currentState.v);
-						motionData.overload.push(step.overload ?? 0);
-
-						Plotly.extendTraces('force-chart', {
-							x: [[currentState.v]],
-							y: [[step.force]]
-						}, [0]);
-						
-						// Обновляем график движения (перерисовываем полностью для корректного отображения)
-						Plotly.react('motion-chart', [
-							{ x: motionData.time, y: motionData.distance, type: 'scatter', mode: 'lines', name: 'Путь (м)' },
-							{ x: motionData.time, y: motionData.speed, type: 'scatter', mode: 'lines', name: 'Скорость (м/с)' },
-							{ x: motionData.time, y: motionData.overload, type: 'scatter', mode: 'lines', name: 'Перегрузка (g)' }
-						], plotLayout, plotConfig);
-						
-						document.getElementById('time-value').innerText = currentState.time.toFixed(2);
-						document.getElementById('speed-value').innerText = currentState.v.toFixed(2);
-						document.getElementById('acceleration-value').innerText = (step.acceleration ?? 0).toFixed(2);
-						document.getElementById('distance-value').innerText = currentState.x.toFixed(2);
-
-						btnTh.disabled = false;
-					}
-				})
-				.catch(err => {
-					console.error(err);
-					alert("Ошибка при получении данных для КГС.");
-				});
-			});
-
-			// ===== Обработчик ТХ =====
-			btnTh.addEventListener('click', function () {
-				const n = forceData.labels.length;
-				if (n === 0) {
-					alert("Сначала постройте КГС хотя бы один раз.");
-					btnTh.disabled = true;
-					return;
-				}
-
-				const timeSlice = motionData.time.slice(0, n);
-				const distSlice = motionData.distance.slice(0, n);
-				const speedSlice = motionData.speed.slice(0, n);
-				const overloadSlice = motionData.overload.slice(0, n);
-
-				Plotly.newPlot('motion-chart', [
-					{ x: timeSlice, y: distSlice, type: 'scatter', mode: 'lines', name: 'Путь (м)' },
-					{ x: timeSlice, y: speedSlice, type: 'scatter', mode: 'lines', name: 'Скорость (м/с)' },
-					{ x: timeSlice, y: overloadSlice, type: 'scatter', mode: 'lines', name: 'Перегрузка (g)' }
-				], plotLayout, plotConfig);
-			});
-
-			// ===== Очистка =====
-			document.getElementById('clear-button').addEventListener('click', function () {
-				Plotly.react('force-chart', [{
-					x: [], y: [], type: 'scatter', mode: 'lines+markers', name: 'Сила торможения'
-				}], plotLayout, plotConfig);
-
-				Plotly.react('motion-chart', [
-					{x: [], y: [], type:'scatter', mode:'lines', name:'Путь (м)'},
-					{x: [], y: [], type:'scatter', mode:'lines', name:'Скорость (м/с)'},
-					{x: [], y: [], type:'scatter', mode:'lines', name:'Перегрузка (g)'}
-				], plotLayout, plotConfig);
-
-				document.getElementById('time-value').innerText = '0';
-				document.getElementById('speed-value').innerText = '0';
-				document.getElementById('acceleration-value').innerText = '0';
-				document.getElementById('distance-value').innerText = '0';
-				document.getElementById('brake-form2').reset();
-				
-				currentState = {
-					v: parseFloat(document.querySelector('input[name="initial_speed"]').value),
-					x: 0,
-					time: 0
-				};
-				forceData = {labels:[], data:[]};
-				motionData = {time:[], distance:[], speed:[], overload:[]};
-				btnTh.disabled = true;
-			});
-
-			// ===== Заполнение шаблонными данными =====
-			document.getElementById('fill-btn').addEventListener('click', function(){
-				const templateData = {
-					mass: '15',
-					initial_speed: '26',
-					dt: 0.001,
-					gamma: '56600000',
-					delta: '0.003',
-					xm: '0.02',
-					ym: '0.1',
-					dh1: 0.01,
-					dh2: 0.01,
-					dm: '0.016',
-					n: 4,
-					mu: 1,
-					bz: '0.86'
-				};
-				for(const key in templateData){
-					const el=document.querySelector(`[name="${key}"]`);
-					if(el) el.value=templateData[key];
-				}
-			});
+		document.getElementById('dlForcePng').addEventListener('click', function () {
+			downloadPlotlyPng('force-chart', 'force_chart');
 		});
 
-		// === Управление боковой панелью ===
+		document.getElementById('dlForceCsv').addEventListener('click', function () {
+			if (forceData.labels.length > 0) {
+				downloadCsv(
+					forceData,
+					'force_data.csv',
+					['Скорость (м/с)', 'Сила (кгс)'],
+					['labels', 'data']
+				);
+			} else {
+				alert('Нет данных для скачивания');
+			}
+		});
+
+		document.getElementById('dlMotionPng').addEventListener('click', function () {
+			downloadPlotlyPng('motion-chart', 'motion_chart');
+		});
+
+		document.getElementById('dlMotionCsv').addEventListener('click', function () {
+			if (motionData.time.length > 0) {
+				downloadCsv(
+					motionData,
+					'motion_data.csv',
+					['Время (с)', 'Путь (м)', 'Скорость (м/с)', 'Перегрузка (g)'],
+					['time', 'distance', 'speed', 'overload']
+				);
+			} else {
+				alert('Нет данных для скачивания');
+			}
+		});
+
+		fillBtn.addEventListener('click', function () {
+			const templateData = {
+				mass: '15',
+				initial_speed: '26',
+				dt: '0.001',
+				gamma: '56600000',
+				delta: '0.003',
+				xm: '0.02',
+				ym: '0.1',
+				dh1: '0.01',
+				dh2: '0.01',
+				dm: '0.016',
+				n: '4',
+				mu: '1',
+				bz: '0.86'
+			};
+
+			for (const key in templateData) {
+				const el = document.querySelector(`[name="${key}"]`);
+
+				if (el) {
+					el.value = templateData[key];
+				}
+			}
+
+			if (forceData.labels.length === 0 && motionData.time.length === 0) {
+				currentState.v = parseNumber(templateData.initial_speed);
+				currentState.x = 0;
+				currentState.time = 0;
+				updateCurrentInfo(0);
+			}
+		});
+
+		clearBtn.addEventListener('click', function () {
+			form.reset();
+			resetCalculation();
+		});
+
 		const menuBtn = document.getElementById('menu-toggle');
 		const sidebar = document.querySelector('.sidebar');
 		const body = document.body;
 
-		menuBtn.addEventListener('click', () => {
-			sidebar.classList.toggle('active');
-			body.classList.toggle('sidebar-open');
-		});
+		if (menuBtn && sidebar) {
+			menuBtn.addEventListener('click', function () {
+				sidebar.classList.toggle('active');
+				body.classList.toggle('sidebar-open');
+
+				setTimeout(resizeCharts, 300);
+			});
+		}
+
+		initCharts();
+		updateCurrentInfo(0);
+		updateSaveButton();
+	});
 	</script>
 </body>
 </html>
